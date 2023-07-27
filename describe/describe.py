@@ -1,12 +1,20 @@
 import argparse
 import pandas
-#import numpy as np
-from utils import TinyStatistician
+from metrics import TinyStatistician as Metrics
+from os import get_terminal_size
+
 
 def parse_arguments() -> tuple:
     """
-    Parse arguments of the program.
-    describe.py takes a dataset_path as argument.
+    Parse the command line argument.
+    Positional argument:
+    - The program takes one positional argument, the path of the dataset.
+    Optional arguments:
+    - Bonus : [--bonus | -b] display more metrics.
+    - Compare : [--compare | -c] compare with real describe().
+    - Help : [--help | -h] display an help message.
+    Usage:
+      python describe.py [-b | --bonus] [-c | --compare] [-h | --help] data.csv
     """
     try:
         parser = argparse.ArgumentParser(
@@ -14,10 +22,28 @@ def parse_arguments() -> tuple:
             description="This program takes a dataset path as argument. " +
             "It displays informations for all numerical features."
         )
-        parser.add_argument('dataset_path')
+        parser.add_argument(
+            dest="dataset_path",
+            type=str,
+            help="Path to the dataset."
+        )
+        parser.add_argument(
+            '-b', '--bonus',
+            dest="bonus",
+            action='store_true',
+            help="Display more metrics."
+        )
+        parser.add_argument(
+            '-c', '--compare',
+            dest="compare",
+            action='store_true',
+            help="Comparaison with pandas.descibe()"
+        )
         args = parser.parse_args()
         return (
-            args.dataset_path
+            args.dataset_path,
+            args.bonus,
+            args.compare
         )
 
     except Exception as e:
@@ -26,6 +52,10 @@ def parse_arguments() -> tuple:
 
 
 def read_dataset(dataset_path: str) -> pandas.DataFrame:
+    """
+    Read the dataset from the given path,
+    returned as a pandas DataFrame.
+    """
     try:
         dataset = pandas.read_csv(dataset_path)
         return dataset
@@ -38,100 +68,89 @@ def read_dataset(dataset_path: str) -> pandas.DataFrame:
 
 
 def select_columns(dataset: pandas.DataFrame) -> pandas.DataFrame:
+    """
+    Describe display numerical features metrics.
+    """
     try:
-        print("all_col:", dataset.columns)
-        print("all_col_type:", dataset.dtypes)
-        print("all_col_shape:", dataset.shape)
-
         numerical_dataset = dataset.select_dtypes(include="number")
-        columns = numerical_dataset.columns
-
-        print("numerical_col:", numerical_dataset.columns)
-        print("numerical_col_type:", numerical_dataset.dtypes)
-        print("numerical_col_shape:", numerical_dataset.shape)
-
+        without_index = numerical_dataset.drop("Index", axis='columns')
+        columns = without_index.columns
+        return (
+            without_index,
+            columns
+        )
+    except KeyError:
+        # When the dataset does not contain an "Index" column,
+        # the drop method will raise a KeyError.
         return (
             numerical_dataset,
-            columns
+            numerical_dataset.columns
         )
     except Exception as e:
         print("Error selecting columns: ", e)
         exit()
 
 
-def test(x):
-    return 42
+def describe(dataset_path: str, bonus: bool = True, compare: bool = False):
+    """
+    Describe display numerical features metrics.
+    Arguments:
+    - dataset_path: path to the dataset.
+    - bonus: display more metrics.
+    - compare: compare with pandas.describe().
+    """
 
-def countf(array):
-    ret = 0
-    for x in array:
-        ret = ret + 1
-    return ret
+    try:
 
-def minim(array):
-    mini = array[0]
-    for x in array:
-        if (x < mini):
-            mini = x
-    return mini
+        entire_dataset = read_dataset(dataset_path)
+        dataset, feature_names = select_columns(entire_dataset)
 
-def maxim(array):
-    maxi = array[0]
-    for x in array:
-        if (x > maxi):
-            maxi = x
-    return maxi
+        metrics = {
+            "count": Metrics.count,
+            "mean": Metrics.mean,
+            "var": Metrics.var,
+            "std": Metrics.std,
+            "min": Metrics.min,
+            "25%": Metrics.perc25,
+            "50%": Metrics.perc50,
+            "75%": Metrics.perc75,
+            "max": Metrics.max,
+        }
 
-def perc25(array):
-    ts = TinyStatistician()
-    return ts.percentile(array, 25)
+        if not bonus:
+            del metrics["var"]
 
-def perc50(array):
-    ts = TinyStatistician()
-    return ts.percentile(array, 50)
+        description = pandas.DataFrame(
+            index=metrics.keys(),
+            columns=feature_names,
+            dtype=float,
+        )
 
-def perc75(array):
-    ts = TinyStatistician()
-    return ts.percentile(array, 75)
- 
+        for feature in feature_names:
+            np_feature = dataset[feature].dropna().to_numpy()
+            for metric, function in metrics.items():
+                description.loc[metric, feature] = function(np_feature)
+
+        with pandas.option_context(
+            'display.max_columns', None,
+            'display.width', get_terminal_size().columns
+        ):
+            # temporary display options for pandas
+
+            print(description)
+            if compare and not bonus:
+                expected = dataset.describe()
+                print(expected, "\n")
+                print("OK") if description.equals(expected) \
+                    else print("KO")
+
+        return description
+
+    except Exception as error:
+        print("Error: ", error)
+        return None
+
+
 if __name__ == "__main__":
-
-    dataset_path = parse_arguments()
-    entire_dataset = read_dataset(dataset_path)
-    dataset, feature_names = select_columns(entire_dataset)
-    tstat = TinyStatistician()
-
-    metrics = {
-        "count": countf,
-        "mean": tstat.mean,
-        "std": tstat.std,
-        "min": minim,
-        "25%": perc25,
-        "50%": perc50,
-        "75%": perc75,
-        "max": maxim, 
-    }
-
-    datads = dataset.drop("Index", axis='columns')
-    #datads.dropna(inplace=True)
-    #datads.replace(np.nan, 0, inplace=True)
-
-    featureds = datads.columns
-
-    description = pandas.DataFrame(
-        index=metrics.keys(),
-        columns=featureds,
-        dtype=float,
-    )
-
-    for feature in featureds:
-        for metric, function in metrics.items():
-            description.loc[metric, feature] = function(datads[feature].dropna().to_numpy())
-
-    pandas.set_option('display.max_columns', None)
-    #pandas.set_option("display.precision", 2)
-    # Expected output:
-    #print(datads.describe())
-
-    # Actual output:
-    print(description)
+    dataset_path, bonus, compare = parse_arguments()
+    describe(dataset_path, bonus, compare)

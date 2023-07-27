@@ -39,8 +39,10 @@ def read_dataset(dataset_path: str) -> pandas.DataFrame:
 
 
 def select_columns(dataset: pandas.DataFrame) -> pandas.DataFrame:
+    """
+    Describe display information of numerical features.
+    """
     try:
-
         numerical_dataset = dataset.select_dtypes(include=("number", "object"))
         without_index = numerical_dataset.drop("Index", axis='columns')
         columns = without_index.columns
@@ -62,7 +64,6 @@ if __name__ == "__main__":
     entire_dataset = read_dataset(dataset_path)
     dataset, columns = select_columns(entire_dataset)
 
-
     palette = {
         "Gryffindor": "#740001",
         "Hufflepuff": "#ecb939",
@@ -71,6 +72,7 @@ if __name__ == "__main__":
     }
 
     sns.set(font_scale=0.5)
+
     sns.pairplot(
         data=dataset,
         hue='Hogwarts House',
@@ -87,4 +89,5 @@ if __name__ == "__main__":
         diag_kws={
         }
     )
+
     plt.show()
