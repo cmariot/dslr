@@ -21,7 +21,6 @@ class TinyStatistician():
         return False
 
     def mean(self, li):
-        print(li, type(li))
         if not TinyStatistician.check_type(li):
             return None
         if (len(li) == 0):
