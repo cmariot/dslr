@@ -1,5 +1,8 @@
 import argparse
 import pandas
+import seaborn as sn
+import math
+import matplotlib.pyplot as plt
 
 
 def parse_arguments() -> tuple:
@@ -52,6 +55,26 @@ def select_columns(dataset: pandas.DataFrame) -> pandas.DataFrame:
         print("Error selecting columns: ", e)
         exit()
 
+def mean(li):
+    if (len(li) == 0):
+        return None
+
+    ret = 0
+    for x in li:
+        ret = ret + x
+    return (float(ret / len(li)))
+
+def std(li):
+    lng = len(li)
+    if (lng == 0):
+        return None
+    mn = mean(li)
+
+    ret = 0
+    for x in li:
+        ret = ret + (x - mn)**2
+    return (float(math.sqrt(ret / (lng - 1))))
+
 if __name__ == "__main__":
 
     dataset_path = parse_arguments()
@@ -59,10 +82,33 @@ if __name__ == "__main__":
 
     dataset, feature_names = select_columns(entire_dataset)
 
-    print(dataset)
+    label = dataset.columns
 
+    histoinf = pandas.DataFrame(
+        index=["std"],
+        columns=dataset.columns,
+        dtype = float
+    )
 
+    histogram = pandas.DataFrame(
+        index=["Index"],
+        columns=["Feature", "Std"] 
+    )
 
+    print("Standard deviation of all numerical features :")
+    pandas.set_option('display.max_columns', None)
+    for x in dataset.columns:
+        std_val = std(dataset[x].dropna().to_numpy())
+        histoinf.loc["std", x] = std_val
+        elem = pandas.DataFrame([{"Feature" : x, "Std" : math.log(std_val)}])
+        histogram = pandas.concat([histogram, elem], axis = 0, ignore_index=True)
+
+    print(histoinf)
+    print(histogram)
+    sn.barplot(data=histogram, x="Feature", y="Std")
+    plt.show()
+    sn.histplot(data=entire_dataset, x="Care of Magical Creatures", hue="Hogwarts House")
+    plt.show()
 
 
     #datahs = datahs.drop("Index", axis='columns')
