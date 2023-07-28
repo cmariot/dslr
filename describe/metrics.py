@@ -11,7 +11,7 @@ class TinyStatistician:
     # Center
     #   Mean                        OK
     #   Median                      OK
-    #   Mode
+    #   Mode                        OK
     # Dispersion
     #   Average absolute deviation  OK
     #   Coefficient of variation    OK
@@ -206,3 +206,29 @@ class TinyStatistician:
             return ret / len(x)
         except Exception:
             return None
+
+    @check_arg
+    def mode(x, split=10):
+        """
+        If we split x in 'split' tresholds,
+        which one has the most frequent.
+        """
+        x_sorted = sorted(x)
+        x_min = TinyStatistician.min(x)
+        x_max = TinyStatistician.max(x)
+        x_range = x_max - x_min
+        x_step = x_range / split
+        x_mode = x_min
+        x_mode_count = 0
+        for _ in range(split):
+            x_mode_count_tmp = 0
+            for value in x_sorted:
+                if value >= x_mode and value < x_mode + x_step:
+                    x_mode_count_tmp += 1
+            if x_mode_count_tmp > x_mode_count:
+                x_mode_count = x_mode_count_tmp
+                x_mode = x_mode + x_step
+        if x_mode_count == 1:
+            # There is no mode
+            return None
+        return x_mode

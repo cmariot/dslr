@@ -108,6 +108,7 @@ def describe(dataset_path: str, bonus: bool = True, compare: bool = False):
         metrics = {
             "count": Metrics.count,
             "mean": Metrics.mean,
+            "mode": Metrics.mode,
             "var": Metrics.var,
             "std": Metrics.std,
             "min": Metrics.min,
@@ -122,6 +123,7 @@ def describe(dataset_path: str, bonus: bool = True, compare: bool = False):
         }
 
         if not bonus:
+            del metrics["mode"]
             del metrics["var"]
             del metrics["range"]
             del metrics["iqr"]
@@ -146,11 +148,15 @@ def describe(dataset_path: str, bonus: bool = True, compare: bool = False):
             # temporary display options for pandas
 
             print(description)
-            if compare and not bonus:
-                expected = dataset.describe()
-                print(expected, "\n")
-                print("OK") if description.equals(expected) \
-                    else print("KO")
+            if compare:
+                if not bonus:
+                    expected = dataset.describe()
+                    print(expected, "\n")
+                    print("OK") if description.equals(expected) \
+                        else print("KO")
+                else:
+                    print("There are more metrics in this function" +
+                          " than the pandas.descibe().")
 
         return description
 
