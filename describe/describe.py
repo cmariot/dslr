@@ -3,7 +3,6 @@ import pandas
 from metrics import TinyStatistician as Metrics
 from os import get_terminal_size
 
-
 def parse_arguments() -> tuple:
     """
     Parse the command line argument.
