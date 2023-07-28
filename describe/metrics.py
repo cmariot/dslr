@@ -2,6 +2,28 @@ import numpy as np
 
 
 class TinyStatistician:
+    """
+    Descriptive statistics class for continuous data.
+    """
+
+    # Metrics list : (https://en.wikipedia.org/wiki/Descriptive_statistics)
+    # Continuous data metrics ideas :
+    # Center
+    #   Mean                        OK
+    #   Median                      OK
+    #   Mode
+    # Dispersion
+    #   Average absolute deviation  OK
+    #   Coefficient of variation    OK
+    #   Interquartile range         OK
+    #   Percentile                  OK
+    #   Range                       OK
+    #   Standard deviation          OK
+    #   Variance                    OK
+    # Shape
+    #   Central limit theorem
+    #   Moments
+    #   Skewness
 
     def check_arg(func):
         """
@@ -124,5 +146,63 @@ class TinyStatistician:
                 if x > maxi:
                     maxi = x
             return maxi
+        except Exception:
+            return None
+
+    @check_arg
+    def iqr(x):
+        """
+        Interquartile range.
+        """
+        try:
+            q1 = TinyStatistician.perc25(x)
+            q3 = TinyStatistician.perc75(x)
+            if q1 is None or q3 is None:
+                return None
+            return q3 - q1
+        except Exception:
+            return None
+
+    @check_arg
+    def range(x):
+        """
+        Range.
+        """
+        try:
+            mini = TinyStatistician.min(x)
+            maxi = TinyStatistician.max(x)
+            if mini is None or maxi is None:
+                return None
+            return maxi - mini
+        except Exception:
+            return None
+
+    @check_arg
+    def cv(x):
+        """
+        Coefficient of variation.
+        """
+        try:
+            std = TinyStatistician.std(x)
+            mean = TinyStatistician.mean(x)
+            if std is None or mean is None:
+                return None
+            return std / mean
+        except Exception:
+            return None
+
+    @check_arg
+    def aad(x):
+        """
+        Average absolute deviation.
+        """
+        try:
+            mean = TinyStatistician.mean(x)
+            if mean is None:
+                return None
+            ret = 0
+            for value in x:
+                ret += abs(value - mean)
+            return ret / len(x)
         except Exception:
             return None

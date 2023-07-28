@@ -1,4 +1,4 @@
-import argparse
+from argparse import ArgumentParser
 import pandas
 from metrics import TinyStatistician as Metrics
 from os import get_terminal_size
@@ -17,7 +17,7 @@ def parse_arguments() -> tuple:
       python describe.py [-b | --bonus] [-c | --compare] [-h | --help] data.csv
     """
     try:
-        parser = argparse.ArgumentParser(
+        parser = ArgumentParser(
             prog="describe",
             description="This program takes a dataset path as argument. " +
             "It displays informations for all numerical features."
@@ -115,10 +115,18 @@ def describe(dataset_path: str, bonus: bool = True, compare: bool = False):
             "50%": Metrics.perc50,
             "75%": Metrics.perc75,
             "max": Metrics.max,
+            "range": Metrics.range,
+            "iqr": Metrics.iqr,
+            "aad": Metrics.aad,
+            "cv": Metrics.cv,
         }
 
         if not bonus:
             del metrics["var"]
+            del metrics["range"]
+            del metrics["iqr"]
+            del metrics["aad"]
+            del metrics["cv"]
 
         description = pandas.DataFrame(
             index=metrics.keys(),
