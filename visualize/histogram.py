@@ -82,8 +82,6 @@ if __name__ == "__main__":
 
     dataset, feature_names = select_columns(entire_dataset)
 
-    label = dataset.columns
-
     histoinf = pandas.DataFrame(
         index=["std"],
         columns=dataset.columns,
