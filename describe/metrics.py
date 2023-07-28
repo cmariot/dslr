@@ -211,7 +211,7 @@ class TinyStatistician:
     def mode(x, split=10):
         """
         If we split x in 'split' tresholds,
-        which one has the most frequent.
+        which one is the most frequent.
         """
         x_sorted = sorted(x)
         x_min = TinyStatistician.min(x)

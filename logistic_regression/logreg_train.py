@@ -1,9 +1,9 @@
 import numpy as np
-import math as mat
 import argparse
 import pandas
-
+import yaml
 from logic_reg import MyLogisticRegression
+
 
 def parse_arguments() -> tuple:
     """
@@ -25,6 +25,7 @@ def parse_arguments() -> tuple:
     except Exception as e:
         print("Error parsing arguments: ", e)
         exit()
+
 
 def read_dataset(dataset_path: str) -> pandas.DataFrame:
     """
@@ -65,50 +66,79 @@ def select_columns(dataset: pandas.DataFrame) -> pandas.DataFrame:
         print("Error selecting columns: ", e)
         exit()
 
-def filter_house(Y_train, house):
-    if not house in ["Ravenclaw" ,"Hufflepuff","Slytherin","Gryffindor"]:
+
+def filter_house(y_train, house):
+    if house not in ("Ravenclaw", "Hufflepuff", "Slytherin", "Gryffindor"):
         return None
-    ret = np.where(Y_train == house, 1, 0)
-    return ret
+    ret = np.where(y_train == house, 1, 0)
+    return ret.reshape(-1, 1)
 
 
-def normalize_train(X_train):
+def normalize_train(x_train):
 
-    ret = X_train.copy()
-    for col in range(X_train.shape[1]):
-        amin = np.amin(X_train[:, col])
-        amax = np.amax(X_train[:, col])
-        ret[:,col] = (X_train[:,col] - amin) / (amax - amin)
-    return ret
-    
+    x_norm = np.empty(x_train.shape)
+    x_min = np.zeros((x_train.shape[1], 1))
+    x_max = np.zeros((x_train.shape[1], 1))
+
+    for col in range(x_train.shape[1]):
+        x_min[col] = np.amin(x_train[:, col])
+        x_max[col] = np.amax(x_train[:, col])
+        x_norm[:, col] = \
+            (x_train[:, col] - x_min[col]) / (x_max[col] - x_min[col])
+
+    return (x_norm, x_min, x_max)
+
 
 if __name__ == "__main__":
 
     dataset_path = parse_arguments()
-    entire_dataset = read_dataset(dataset_path)
+    dataset = read_dataset(dataset_path)
 
-    data_used = entire_dataset[["Hogwarts House", "Astronomy", "Herbology", "Defense Against the Dark Arts", "Ancient Runes"]].dropna()
+    features = [
+        "Astronomy",
+        "Herbology",
+        "Defense Against the Dark Arts",
+        "Ancient Runes"
+    ]
+    target = ["Hogwarts House"]
+    houses = (
+        "Ravenclaw",
+        "Hufflepuff",
+        "Slytherin",
+        "Gryffindor"
+    )
 
-    X_train = data_used[["Astronomy", "Herbology", "Defense Against the Dark Arts", "Ancient Runes"]].to_numpy()
+    training_set = dataset[features + target].dropna()
+    # split dataset into training and test sets
+    x_train = training_set[features].to_numpy()
+    y_train = training_set[target]
+    x_norm, x_min, x_max = normalize_train(x_train)
+    theta_shape = (x_norm.shape[1] + 1, 1)
 
-    Y_train = data_used["Hogwarts House"]
-
-    houses = ["Ravenclaw" ,"Hufflepuff","Slytherin","Gryffindor"]
-
-    mod = {}
-
-    X_norm = normalize_train(X_train)
-
-    #prediction = np.full((X_train.shape[0], 4), 0)s
-    prediction = np.full((1470, 1), 0)
-    print(prediction.shape)
-
+    model = {}
+    model["x_min"] = x_min
+    model["x_max"] = x_max
     for i, house in enumerate(houses):
         print("Fiting for house", house)
-        mlr = MyLogisticRegression(theta=np.zeros((5, 1)), max_iter=1000, alpha=0.1)
-        mlr.fit_(X_norm, filter_house(Y_train, house).reshape(-1, 1))
-        mod[house] = mlr.theta
-        prediction = np.concatenate((prediction, mlr.predict_(X_norm).reshape(-1, 1)), axis=1)
-        #prediction[ : , i] = mlr.predict_(X_norm).reshape(-1, 1)
+        mlr = MyLogisticRegression(
+            theta=np.zeros(theta_shape),
+            max_iter=500,
+            alpha=4.0
+        )
+        filtered_y = filter_house(y_train, house)
+        mlr.fit_(x_norm, filtered_y)
+        model[house] = mlr.theta
+        mlr.plot_loss_evolution()
 
-    print(prediction)
+    with open("models.yml", "w") as file:
+        yaml.dump(model, file)
+
+    # Pas besoin de faire de prediction dans ce script,
+    # ca sera fait dans logreg_predict.py.
+    # Sauvegarde de ce qu'on avait fait vendredi :
+
+    # prediction = np.empty((x_norm.shape[0], 0))
+    # for house in houses:
+    #   mlr = MLR(theta[i] ...)
+    #   y_hat = mlr.predict_(x_norm)
+    #   prediction = np.concatenate((prediction, y_hat), axis=1)

@@ -1,0 +1,109 @@
+Gryffindor: !!python/object/apply:numpy.core.multiarray._reconstruct
+  args:
+  - &id001 !!python/name:numpy.ndarray ''
+  - !!python/tuple
+    - 0
+  - !!binary |
+    Yg==
+  state: !!python/tuple
+  - 1
+  - !!python/tuple
+    - 5
+    - 1
+  - &id002 !!python/object/apply:numpy.dtype
+    args:
+    - f8
+    - false
+    - true
+    state: !!python/tuple
+    - 3
+    - <
+    - null
+    - null
+    - null
+    - -1
+    - -1
+    - 0
+  - false
+  - !!binary |
+    XBFUQEDiAMDNPHbqduAMQLgXZHaE9CLAECdllVvhFsAuiMytQzokQA==
+Hufflepuff: !!python/object/apply:numpy.core.multiarray._reconstruct
+  args:
+  - *id001
+  - !!python/tuple
+    - 0
+  - !!binary |
+    Yg==
+  state: !!python/tuple
+  - 1
+  - !!python/tuple
+    - 5
+    - 1
+  - *id002
+  - false
+  - !!binary |
+    qNu4qQt08r8XibV/4WcRQIu/lh/0nCFADcAjauQEFsAntMDT4G4lwA==
+Ravenclaw: !!python/object/apply:numpy.core.multiarray._reconstruct
+  args:
+  - *id001
+  - !!python/tuple
+    - 0
+  - !!binary |
+    Yg==
+  state: !!python/tuple
+  - 1
+  - !!python/tuple
+    - 5
+    - 1
+  - *id002
+  - false
+  - !!binary |
+    Klg7gfwFHcBCHP3woA8hwGvXpU5AnyBAkoH7ghVl9D/IYmlqz6IhQA==
+Slytherin: !!python/object/apply:numpy.core.multiarray._reconstruct
+  args:
+  - *id001
+  - !!python/tuple
+    - 0
+  - !!binary |
+    Yg==
+  state: !!python/tuple
+  - 1
+  - !!python/tuple
+    - 5
+    - 1
+  - *id002
+  - false
+  - !!binary |
+    Z1j9v9aYDECp5l1RWFsLwDcvz+P9oiHAk5+tiBf6G0D+XWA/BOIiwA==
+x_max: !!python/object/apply:numpy.core.multiarray._reconstruct
+  args:
+  - *id001
+  - !!python/tuple
+    - 0
+  - !!binary |
+    Yg==
+  state: !!python/tuple
+  - 1
+  - !!python/tuple
+    - 4
+    - 1
+  - *id002
+  - false
+  - !!binary |
+    ikTNDbLBj0Ae81tizTknQKTsACu2VSNAzY9TdStLh0A=
+x_min: !!python/object/apply:numpy.core.multiarray._reconstruct
+  args:
+  - *id001
+  - !!python/tuple
+    - 0
+  - !!binary |
+    Yg==
+  state: !!python/tuple
+  - 1
+  - !!python/tuple
+    - 4
+    - 1
+  - *id002
+  - false
+  - !!binary |
+    wnExo+w1jsDpOJgbYZckwBFfg1ABUyTAVvbY6um9cUA=

@@ -1,6 +1,7 @@
 import numpy as np
 import math as mat
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 class MyLogisticRegression():
     """
         Description:
@@ -21,6 +22,8 @@ class MyLogisticRegression():
         self.alpha = alpha
         self.max_iter = max_iter
         self.theta = theta
+        self.losses = []
+        self.r2_scores = []
 
     @staticmethod
     def check_matix(mat):
@@ -100,4 +103,60 @@ class MyLogisticRegression():
             self.theta = self.theta - (self.alpha * MyLogisticRegression.grad(x, y, self.theta))
             if True in np.isnan(self.theta):
                 return None
+            y_hat = self.predict_(x)
+            self.losses.append(
+                self.loss_(y, y_hat)
+            )
+            self.r2_scores.append(
+                self.r2_score(y, y_hat)
+            )
+        print()
         return self.theta
+
+    def r2_score(self, y, y_hat):
+        """
+        Return the R2 score.
+        """
+        try:
+            y_mean = np.mean(y)
+            return 1 - (np.sum(np.square(y_hat - y)) /
+                        np.sum(np.square(y - y_mean)))
+        except Exception:
+            return None
+
+    def plot_loss_evolution(self):
+        try:
+
+            fig = plt.figure()
+
+            # Plot the losses
+            ax1 = fig.add_subplot(111)
+            ax1.set_xlabel("Iteration")
+            ax1.plot(self.losses, color="red", label="Loss")
+            ax1.legend(["Loss"], loc="center right",
+                       bbox_to_anchor=(0.95, 0.45))
+            ax1.set_ylabel("Loss", color="red")
+            for tl in ax1.get_yticklabels():
+                tl.set_color("red")
+                tl.set_fontsize(9)
+            plt.text(0.6, 0.10, f"last loss = {self.losses[-1]:.2f}",
+                     transform=plt.gca().transAxes,
+                     fontsize=11, verticalalignment='top', color="red")
+
+            # Plot the R2 scores
+            ax2 = ax1.twinx()
+            ax2.plot(self.r2_scores, color="blue", label="R2 score")
+            ax2.legend(["R2 score"], loc="center right",
+                       bbox_to_anchor=(0.95, 0.55))
+            ax2.set_ylabel("R2 score", color="blue")
+            for tl in ax2.get_yticklabels():
+                tl.set_color("blue")
+            plt.text(0.6, 0.925, f"last R2-score = {self.r2_scores[-1]:.2f}",
+                     transform=plt.gca().transAxes,
+                     fontsize=11, verticalalignment='top', color="blue")
+
+            plt.title("Metrics evolution during training")
+            plt.grid(linestyle=':', linewidth=0.5)
+            plt.show()
+        except Exception:
+            return None
