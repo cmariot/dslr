@@ -85,7 +85,6 @@ def drop_index(dataset: pandas.DataFrame) -> pandas.DataFrame:
 def check_target(target_name, dataset) -> tuple:
     """
     Check if there is a 'target_name' column in the dataset.
-
     """
     try:
         target = dataset[target_name]
@@ -147,7 +146,9 @@ if __name__ == "__main__":
 
     # Figure title
     pair_plot.fig.suptitle(
-        "Pair plot of numerical features"
+        f"Pair plot representing feature correlations of {target_name}." +
+        " (Scatter plot matrix with histograms)",
+        y=0.9975
     )
 
     # Save the figure in a file, more readable than the figure
