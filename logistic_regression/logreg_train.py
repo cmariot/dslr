@@ -91,13 +91,10 @@ if __name__ == "__main__":
 
     features = [
         "Astronomy",
-        "Defense Against the Dark Arts",
-        "Ancient Runes",
         "Herbology",
-        "Charms",
-        "Divination",
+        "Defense Against the Dark Arts",
         "Muggle Studies",
-
+        "Ancient Runes",
     ]
 
     polynomial_degree = 1
@@ -119,7 +116,7 @@ if __name__ == "__main__":
     model = {}
     model["x_min"] = x_min.reshape(1, -1)
     model["x_max"] = x_max.reshape(1, -1)
-    model["polynomial_degree"] = polynomial_degree
+    model["degree"] = polynomial_degree
     model["features"] = features
     theta_shape = (x_train_norm.shape[1] + 1, 1)
 
@@ -127,8 +124,8 @@ if __name__ == "__main__":
         print(f"Training model {i + 1}/4 for house {house}")
         mlr = MLR(
             theta=np.zeros(theta_shape),
-            max_iter=100000,
-            alpha=0.01,
+            max_iter=10_000,
+            alpha=0.1,
             penality=None,
             lambda_=0.0,
         )

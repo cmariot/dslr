@@ -15,7 +15,12 @@ class MyLogisticRegression:
     supported_penalities = ['l2']
 
     def checkargs_init(func):
-        def wrapper(self, theta = np.zeros((2, 1)), alpha = 0.1, max_iter = 1_000, penality = None, lambda_ = 0.0):
+        def wrapper(self,
+                    theta=np.zeros((2, 1)),
+                    alpha=0.1,
+                    max_iter=1_000,
+                    penality=None,
+                    lambda_=0.0):
             try:
                 if not isinstance(theta, np.ndarray):
                     raise TypeError("theta must be a numpy.ndarray")
@@ -156,7 +161,8 @@ class MyLogisticRegression:
     def predict_(self, x):
         try:
             m = x.shape[0]
-            x = np.nan_to_num(x)
+            # Nan are replaced by mean x
+            x = np.nan_to_num(x, nan=np.nanmean(x, axis=0))
             x_prime = np.concatenate((np.ones((m, 1)), x), axis=1)
             y_hat = self.sigmoid_(x_prime.dot(self.theta))
             return y_hat
@@ -655,7 +661,6 @@ class MyLogisticRegression:
                 cm = DataFrame(cm, index=labels, columns=labels)
 
             if display:
-                print("Confusion matrix :")
                 print(cm)
 
             return cm

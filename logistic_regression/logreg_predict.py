@@ -3,7 +3,7 @@ import argparse
 import pandas
 import yaml
 from my_logistic_regression import MyLogisticRegression as MLR
-from os import get_terminal_size
+
 
 def parse_arguments() -> tuple:
     """
@@ -13,8 +13,10 @@ def parse_arguments() -> tuple:
     try:
         parser = argparse.ArgumentParser(
             prog="logreg_predict.py",
-            description="This program takes a dataset path as argument and a model. " +
-            "It predict the result of the models passed as parameter on the dataset and save the results in 'houses.csv' file."
+            description="This program takes a dataset path as argument " +
+            "and a model. It predict the result of the models passed as " +
+            "parameter on the dataset and save the results in " +
+            "'houses.csv' file."
         )
         parser.add_argument(
             'dataset_path',
@@ -39,6 +41,23 @@ def parse_arguments() -> tuple:
         exit()
 
 
+def get_model(model_path: str) -> dict:
+    """
+    Read the model from the given path,
+    returned as a dict.
+    """
+    try:
+        with open(model_path, "r") as file:
+            model = yaml.load(file, Loader=yaml.loader.UnsafeLoader)
+        return model
+    except FileNotFoundError:
+        print("Error: model not found.")
+        exit()
+    except Exception as e:
+        print("Error reading model: ", e)
+        exit()
+
+
 def read_dataset(dataset_path: str) -> pandas.DataFrame:
     """
     Read the dataset from the given path,
@@ -54,6 +73,7 @@ def read_dataset(dataset_path: str) -> pandas.DataFrame:
         print("Error reading dataset: ", e)
         exit()
 
+
 def normalize_test(x_test, x_min, x_max):
     try:
         x_norm = (x_test - x_min) / (x_max - x_min)
@@ -62,23 +82,14 @@ def normalize_test(x_test, x_min, x_max):
         print("Error normalizing test set: ", e)
         exit()
 
+
 if __name__ == '__main__':
+
     (test_path, model_path) = parse_arguments()
-
-    try:
-        with open(model_path, "r") as file:
-            model = yaml.load(file, Loader=yaml.loader.UnsafeLoader)
-    except Exception as e:
-        print("Error reading model: ", e)
-        exit()
-
+    model = get_model(model_path)
     data_test = read_dataset(test_path)
-    # with pandas.option_context(
-    #         'display.max_columns', None,
-    #         'display.width', get_terminal_size().columns
-    # ):
-    #     print(data_test[-1:])
-    truth = read_dataset("../datasets/dataset_truth.csv")["Hogwarts House"].to_numpy()
+    truth = read_dataset("../datasets/dataset_truth.csv")
+    truth = truth["Hogwarts House"].to_numpy()
 
     houses = (
         "Ravenclaw",
@@ -88,8 +99,7 @@ if __name__ == '__main__':
     )
 
     x_test = data_test[model["features"]].to_numpy()
-    # print(x_test)
-    # print(model["x_min"])
+    x_test = MLR.add_polynomial_features(x_test, model["degree"])
     x_test = normalize_test(x_test, model["x_min"], model["x_max"])
 
     mlr = MLR()
@@ -97,7 +107,6 @@ if __name__ == '__main__':
     for house in houses:
         mlr.theta = model[house]
         y_hat = mlr.predict_(x_test)
-        #print(y_hat)
         prediction = np.concatenate((prediction, y_hat), axis=1)
 
     y_hat = np.argmax(prediction, axis=1)
@@ -107,38 +116,12 @@ if __name__ == '__main__':
     # print(y_hat.shape)
     # print(truth.shape)
 
-    print ("Accurency")
-    print(mlr.accuracy_score_(y_hat, truth) * 100, " %")
+    mlr.confusion_matrix_(
+        y_true=truth,
+        y_hat=y_hat,
+        labels=houses,
+        df_option=True,
+        display=True
+    )
 
-# Sauvegarde de ce qu'on avait fait vendredi dans train.py:
-# Pas besoin de faire de prediction dans ce script,
-# ca sera fait dans logreg_predict.py.
-
-# polynomial test
-# normalize test
-# prediction = np.empty((x_train_norm.shape[0], 0))
-# for house in houses:
-#     mlr.theta = model[house]
-#     y_hat = mlr.predict_(x_train_norm)
-#     prediction = np.concatenate((prediction, y_hat), axis=1)
-
-# # Argmax sur les predictions pour trouver la maison la plus probable
-# # pour chaque ligne du dataset d'entrainement
-# y_hat = np.argmax(prediction, axis=1)
-# # On remplace les indices par les noms des maisons
-# y_hat = np.array([houses[i] for i in y_hat])
-# # On compare les predictions avec les vraies valeurs
-# y_train = y_train.to_numpy().reshape(-1)
-
-# # Confusion matrix
-# mlr.confusion_matrix_(
-#     y_train,
-#     y_hat,
-#     labels=houses,
-#     df_option=True,
-#     display=True
-# )
-
-# print("\nAccuracy on training set:")
-# accuracy = mlr.accuracy_score_(y_hat, y_train)
-# print(accuracy)
+    print(f"\nAccurency: {mlr.accuracy_score_(y_hat, truth) * 100} %")
