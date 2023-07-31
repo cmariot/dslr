@@ -5,23 +5,35 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 def parse_arguments() -> tuple:
     """
     Parse arguments of the program.
-    describe.py takes a dataset_path as argument.
     """
     try:
         parser = argparse.ArgumentParser(
-            prog="describe",
-            description="This program takes a dataset path as argument. " +
-            "It displays informations for all numerical features."
+            prog="scatter_plot",
+            description="This plot helps us to answer this question : " +
+                        "What are the two features that are similar ?"
         )
-        parser.add_argument('dataset_path')
+        parser.add_argument(
+            '-p', '--path',
+            dest="dataset_path",
+            type=str,
+            default="../datasets/dataset_train.csv",
+            help="Path to the dataset."
+        )
+        parser.add_argument(
+            '-s', '--save-png',
+            dest="save_png",
+            action='store_true',
+            help="Save the histogram in a png file."
+        )
         args = parser.parse_args()
         return (
-            args.dataset_path
+            args.dataset_path,
+            args.save_png
         )
-
     except Exception as e:
         print("Error parsing arguments: ", e)
         exit()
@@ -51,7 +63,6 @@ def select_columns(dataset: pandas.DataFrame) -> pandas.DataFrame:
     except KeyError:
         return numerical_dataset, numerical_dataset.columns
     except Exception as e:
-        print(e)
         print("Error selecting columns: ", e)
         exit()
 
@@ -91,9 +102,8 @@ def cov(arra1, arra2):
 
 if __name__ == "__main__":
 
-    dataset_path = parse_arguments()
+    dataset_path, save_png = parse_arguments()
     entire_dataset = read_dataset(dataset_path)
-
     dataset, feature_names = select_columns(entire_dataset)
 
     name = np.array([])
@@ -104,19 +114,28 @@ if __name__ == "__main__":
             if x != y and x > y:
                 cov_v = cov(dataset[x], dataset[y])
                 print(index, " Correlation(", x.strip(), ",", y.strip(), ")",  cov_v)
-                name = np.append(name, int(index))
+                name = np.append(name, f"{x.strip()} vs. {y.strip()}")
                 val = np.append(val, cov_v)
                 index = index + 1
 
-    name = name.astype(int)
+    # name = name.astype(int)
 
     dataplot = pandas.DataFrame(dict(Features=name, Correlation=val))
+    plt.figure(figsize=(20, 10))
     sn.barplot(x='Features', y='Correlation', data=dataplot, errorbar=None)
+    plt.xlabel("Features")
+    plt.ylabel("Correlation")
+    plt.title("Barplot of the correlation between features")
+    plt.xticks(rotation=90, fontsize=8)
+    plt.tight_layout()
+    if save_png:
+        plt.savefig("bar_plot_2.png")
     plt.show()
 
+    plt.figure(figsize=(20, 10))
     sn.scatterplot(data=entire_dataset, x="Astronomy", y="Defense Against the Dark Arts", hue="Hogwarts House")
+    plt.title("Scatter plot of the Defense Against the Dark Arts score depending on the Astronomy score")
+    plt.tight_layout()
+    if save_png:
+        plt.savefig("scatter_plot.png")
     plt.show()
-
-    
-
-

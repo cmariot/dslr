@@ -13,7 +13,6 @@ def parse_arguments() -> tuple:
             prog="pair_plot",
             description="This plot helps us to choose features" +
                         " for logistic_regression."
-
         )
         parser.add_argument(
             '-p', '--path',
