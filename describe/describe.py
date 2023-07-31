@@ -145,7 +145,6 @@ def describe(dataset_path: str, bonus: bool = True, compare: bool = False):
             'display.max_columns', None,
             'display.width', get_terminal_size().columns
         ):
-            # temporary display options for pandas
 
             print(description)
             if compare:

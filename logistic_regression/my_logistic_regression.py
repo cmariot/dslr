@@ -100,6 +100,20 @@ class MyLogisticRegression:
         except Exception:
             return None
 
+    def normalize_train(x_train):
+        try:
+            x_min = np.amin(x_train, axis=0)
+            x_max = np.amax(x_train, axis=0)
+            x_norm = (x_train - x_min) / (x_max - x_min)
+            return (
+                x_norm,
+                x_min.reshape(-1, 1),
+                x_max.reshape(-1, 1)
+            )
+        except Exception as e:
+            print("Error normalizing training set: ", e)
+            return None, None, None
+
     def checkargs_sigmoid_(func):
         def wrapper(self, x):
             try:

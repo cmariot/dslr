@@ -40,6 +40,7 @@ def parse_arguments() -> tuple:
 
 
 def read_dataset(dataset_path: str) -> pandas.DataFrame:
+
     try:
         dataset = pandas.read_csv(dataset_path)
         return dataset
@@ -51,8 +52,8 @@ def read_dataset(dataset_path: str) -> pandas.DataFrame:
         exit()
 
 def select_columns(dataset: pandas.DataFrame) -> pandas.DataFrame:
-    try:
 
+    try:
         numerical_dataset = dataset.select_dtypes(include="number")
         without_index = numerical_dataset.drop("Index", axis='columns')
         columns = without_index.columns
@@ -69,7 +70,6 @@ def select_columns(dataset: pandas.DataFrame) -> pandas.DataFrame:
 def mean(li):
     if (len(li) == 0):
         return None
-
     ret = 0
     for x in li:
         ret = ret + x
