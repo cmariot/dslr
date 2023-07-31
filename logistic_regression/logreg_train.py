@@ -99,18 +99,25 @@ def normalize_train(x_train):
     )
 
 
-# def denormalize_theta_minmax(theta, min_vals, max_vals):
-#     theta_denorm = np.zeros(theta.shape)
-#     theta_denorm[0] = theta[0] - np.sum(
-#         theta[1:] * min_vals / (max_vals - min_vals)
-#     )
-#     theta_denorm[1:] = theta[1:] / (max_vals - min_vals)
-#     return theta_denorm
+def normalize_test(x_test, x_min, x_max):
+    x_norm = (x_test - x_min) / (x_max - x_min)
+    return x_norm,
+
+
+def denormalize_theta_minmax(theta, min_vals, max_vals):
+    theta_denorm = np.zeros(theta.shape)
+    theta_denorm[0] = theta[0] - np.sum(
+        theta[1:] * min_vals / (max_vals - min_vals),
+        dtype=np.float64
+    )
+    theta_denorm[1:] = theta[1:] / (max_vals - min_vals)
+    return theta_denorm
 
 
 if __name__ == "__main__":
 
     dataset_path, display_loss_evolution = parse_arguments()
+
     dataset = read_dataset(dataset_path)
 
     features = [
@@ -128,7 +135,11 @@ if __name__ == "__main__":
         "Charms",
         "Flying",
     ]
+
+    polynomial_degree = 1
+
     target = ["Hogwarts House"]
+
     houses = (
         "Ravenclaw",
         "Slytherin",
@@ -141,7 +152,6 @@ if __name__ == "__main__":
     x_train = training_set[features].to_numpy()
     y_train = training_set[target]
 
-    polynomial_degree = 1
     x_train_poly = MyLogisticRegression.add_polynomial_features(
         x_train,
         polynomial_degree
@@ -180,10 +190,10 @@ if __name__ == "__main__":
 
         # # TESTS DENORMALIZE THETA
         # # Predict with normalized data
-        # y_hat_norm = mlr.predict_(x_norm)
+        # y_hat_norm = mlr.predict_(x_train_norm)
         # # Predict with denormalized data
         # mlr.theta = denormalize_theta_minmax(mlr.theta, x_min, x_max)
-        # y_hat_denorm = mlr.predict_(x_train)
+        # y_hat_denorm = mlr.predict_(x_train_poly)
         # # Compare the two predictions
         # print("Comparing the two predictions:")
         # print(np.array_equal(y_hat_norm, y_hat_denorm))  # -> False
@@ -203,7 +213,8 @@ if __name__ == "__main__":
         # # mais c'est plus long a entrainer.
         # # La difference vient probablement plus d'erreurs d'arrondis que
         # # d'une erreur dans le calcul de la prediction.
-        # # On utilisera quand meme x_min/max en np.float64 pour le rendu
+        # # On utilisera tout de meme x_min/max pour normaliser le set de test
+        # # pour le rendu
 
     with open("models.yml", "w") as file:
         yaml.dump(model, file)
@@ -216,29 +227,29 @@ if __name__ == "__main__":
     # polynomial test
     # normalize test
 
-    prediction = np.empty((x_train_norm.shape[0], 0))
-    for house in houses:
-        mlr.theta = model[house]
-        y_hat = mlr.predict_(x_train_norm)
-        prediction = np.concatenate((prediction, y_hat), axis=1)
+    # prediction = np.empty((x_train_norm.shape[0], 0))
+    # for house in houses:
+    #     mlr.theta = model[house]
+    #     y_hat = mlr.predict_(x_train_norm)
+    #     prediction = np.concatenate((prediction, y_hat), axis=1)
 
-    # Argmax sur les predictions pour trouver la maison la plus probable
-    # pour chaque ligne du dataset d'entrainement
-    y_hat = np.argmax(prediction, axis=1)
-    # On remplace les indices par les noms des maisons
-    y_hat = np.array([houses[i] for i in y_hat])
-    # On compare les predictions avec les vraies valeurs
-    y_train = y_train.to_numpy().reshape(-1)
+    # # Argmax sur les predictions pour trouver la maison la plus probable
+    # # pour chaque ligne du dataset d'entrainement
+    # y_hat = np.argmax(prediction, axis=1)
+    # # On remplace les indices par les noms des maisons
+    # y_hat = np.array([houses[i] for i in y_hat])
+    # # On compare les predictions avec les vraies valeurs
+    # y_train = y_train.to_numpy().reshape(-1)
 
-    # Confusion matrix
-    mlr.confusion_matrix_(
-        y_train,
-        y_hat,
-        labels=houses,
-        df_option=True,
-        display=True
-    )
+    # # Confusion matrix
+    # mlr.confusion_matrix_(
+    #     y_train,
+    #     y_hat,
+    #     labels=houses,
+    #     df_option=True,
+    #     display=True
+    # )
 
-    print("\nAccuracy on training set:")
-    accuracy = mlr.accuracy_score_(y_hat, y_train)
-    print(accuracy)
+    # print("\nAccuracy on training set:")
+    # accuracy = mlr.accuracy_score_(y_hat, y_train)
+    # print(accuracy)

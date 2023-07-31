@@ -92,7 +92,7 @@ class MyLogisticRegression:
                 return None
             if not isinstance(power, int) or power < 1:
                 return None
-            polynomial_matrix = x
+            polynomial_matrix = x.copy()
             for i in range(2, power + 1):
                 new_column = x ** i
                 polynomial_matrix = np.c_[polynomial_matrix, new_column]
