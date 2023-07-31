@@ -15,7 +15,7 @@ class MyLogisticRegression:
     supported_penalities = ['l2']
 
     def checkargs_init(func):
-        def wrapper(self, theta, alpha, max_iter, penality, lambda_):
+        def wrapper(self, theta = np.zeros((2, 1)), alpha = 0.1, max_iter = 1_000, penality = None, lambda_ = 0.0):
             try:
                 if not isinstance(theta, np.ndarray):
                     raise TypeError("theta must be a numpy.ndarray")
@@ -156,10 +156,12 @@ class MyLogisticRegression:
     def predict_(self, x):
         try:
             m = x.shape[0]
+            x = np.nan_to_num(x)
             x_prime = np.concatenate((np.ones((m, 1)), x), axis=1)
             y_hat = self.sigmoid_(x_prime.dot(self.theta))
             return y_hat
-        except Exception:
+        except Exception as e:
+            print(e)
             return None
 
     def checkargs_l2_(func):

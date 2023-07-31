@@ -88,6 +88,18 @@ if __name__ == "__main__":
         "Charms",
         "Flying",
     ]
+
+    features = [
+        "Astronomy",
+        "Defense Against the Dark Arts",
+        "Ancient Runes",
+        "Herbology",
+        "Charms",
+        "Divination",
+        "Muggle Studies",
+
+    ]
+
     polynomial_degree = 1
     target = ["Hogwarts House"]
     houses = (
@@ -105,17 +117,18 @@ if __name__ == "__main__":
     x_train_norm, x_min, x_max = \
         MLR.normalize_train(x_train_poly)
     model = {}
-    model["x_min"] = x_min
-    model["x_max"] = x_max
+    model["x_min"] = x_min.reshape(1, -1)
+    model["x_max"] = x_max.reshape(1, -1)
     model["polynomial_degree"] = polynomial_degree
+    model["features"] = features
     theta_shape = (x_train_norm.shape[1] + 1, 1)
 
     for i, house in enumerate(houses):
         print(f"Training model {i + 1}/4 for house {house}")
         mlr = MLR(
             theta=np.zeros(theta_shape),
-            max_iter=5_000,
-            alpha=0.5,
+            max_iter=100000,
+            alpha=0.01,
             penality=None,
             lambda_=0.0,
         )
@@ -130,3 +143,30 @@ if __name__ == "__main__":
     with open("models.yml", "w") as file:
         yaml.dump(model, file)
         print("Models saved in 'models.yml' file.\n")
+
+    prediction = np.empty((x_train_norm.shape[0], 0))
+    for house in houses:
+        mlr.theta = model[house]
+        y_hat = mlr.predict_(x_train_norm)
+        prediction = np.concatenate((prediction, y_hat), axis=1)
+
+    # Argmax sur les predictions pour trouver la maison la plus probable
+    # pour chaque ligne du dataset d'entrainement
+    y_hat = np.argmax(prediction, axis=1)
+    # On remplace les indices par les noms des maisons
+    y_hat = np.array([houses[i] for i in y_hat])
+    # On compare les predictions avec les vraies valeurs
+    y_train = y_train.to_numpy().reshape(-1)
+
+    # Confusion matrix
+    mlr.confusion_matrix_(
+        y_train,
+        y_hat,
+        labels=houses,
+        df_option=True,
+        display=True
+    )
+
+    print("\nAccuracy on training set:")
+    accuracy = mlr.accuracy_score_(y_hat, y_train)
+    print(accuracy * 100, "%")
