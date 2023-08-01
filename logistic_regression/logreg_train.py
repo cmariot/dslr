@@ -33,10 +33,42 @@ def parse_arguments() -> tuple:
             action='store_true',
             default=False
         )
+
+        parser.add_argument(
+            '--stochastic',
+            '-s',
+            help='Use the stochastic gradient descent optimization.',
+            action='store_true',
+            default=False
+        )
+        parser.add_argument(
+            '--mini-batch',
+            '-m',
+            help='Use the mini-batch gradient descent otpimization.',
+            action='store_true',
+            default=False
+        )
+        parser.add_argument(
+            '--batch',
+            '-b',
+            help='Use the batch gradient descent otpimization.',
+            action='store_true',
+            default=False
+        )
+
         args = parser.parse_args()
+
+        opti = [i for i in (args.stochastic, args.mini_batch, args.batch) if i is True]
+        if len(opti) > 1:
+            print("Error: you can only use one optimization method.")
+            exit()
+
         return (
             args.dataset_path,
-            args.loss_evolution
+            args.loss_evolution,
+            args.stochastic,
+            args.mini_batch,
+            args.batch
         )
 
     except Exception as e:
@@ -73,24 +105,12 @@ def filter_house(y_train, house):
 
 if __name__ == "__main__":
 
-    (dataset_path, display_loss_evolution) = parse_arguments()
+    (dataset_path,
+     display_loss_evolution,
+     stochastic,
+     mini_batch,
+     batch) = parse_arguments()
     dataset = read_dataset(dataset_path)
-
-    # features = [
-    #     "Arithmancy",
-    #     "Astronomy",
-    #     "Herbology",
-    #     "Defense Against the Dark Arts",
-    #     "Divination",
-    #     "Muggle Studies",
-    #     "Ancient Runes",
-    #     "History of Magic",
-    #     "Transfiguration",
-    #     "Potions",
-    #     "Care of Magical Creatures",
-    #     "Charms",
-    #     "Flying",
-    # ]
 
     features = [
         "Astronomy",
@@ -112,29 +132,12 @@ if __name__ == "__main__":
     x_train = training_set[features].to_numpy()
     y_train = training_set[target]
 
-    x_train = np.linspace(0, 10, 10).reshape(5, 2)
-    x_train[1, 0] = np.nan
-    x_train[2, 1] = np.nan
-    x_train[3, 0] = np.nan
-    x_train[4, 1] = np.nan
-
     # Pair plot to see the distribution of the features
-   # sns.pairplot(training_set, hue="Hogwarts House")
-   # plt.show()
+    # sns.pairplot(training_set, hue="Hogwarts House")
+    # plt.show()
 
-    test = np.array([[1, 2, 3], [4, 5,6]])
-    print(test)
-    print(np.delete(test,  1, 1))
-    print(test)
-
-    exit(0)
     imputer = KNNImputer(n_neighbors=4)
-    x_train_without_nan = imputer.fit_transform(x_train)
-    for x, x2 in zip(x_train_without_nan, x_train):
-        print(x2, x)
-    x_train = x_train_without_nan
-    exit(0)
-
+    x_train = imputer.fit_transform(x_train)
 
     x_norm, x_min, x_max = MLR.normalize_train(x_train)
 
@@ -154,13 +157,33 @@ if __name__ == "__main__":
             alpha=0.1,
             penality=None,
             lambda_=0.0,
+            stochastic=stochastic,
+            mini_batch=mini_batch,
+            batch=batch
         )
         filtered_y_train = filter_house(y_train, house)
-        mlr.fit_(
+
+        different_fit = [
+            (stochastic, mlr.fit_stochastic_),
+            # (mini_batch: mlr.fit_mini_batch_),
+            (batch, mlr.fit_batch_),
+            (True, mlr.fit_)
+        ]
+
+        # First element of different_fit that is True at index 0
+        fit_to_use = next(
+            (fit for fit in different_fit if fit[0] is True),
+            (False, None)
+        )[1]
+
+
+
+        fit_to_use(
             x_norm,
             filtered_y_train,
             display_loss_evolution
         )
+
         model[house] = mlr.theta
 
     with open("models.yml", "w") as file:

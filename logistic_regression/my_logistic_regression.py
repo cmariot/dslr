@@ -20,7 +20,11 @@ class MyLogisticRegression:
                     alpha=0.1,
                     max_iter=1_000,
                     penality=None,
-                    lambda_=0.0):
+                    lambda_=0.0,
+                    stochastic=False,
+                    mini_batch=False,
+                    batch=False,
+                    batch_size=32):
             try:
                 if not isinstance(theta, np.ndarray):
                     raise TypeError("theta must be a numpy.ndarray")
@@ -41,15 +45,35 @@ class MyLogisticRegression:
                     raise TypeError("lambda_ must be a float")
                 if lambda_ < 0:
                     raise ValueError("lambda_ must be positive")
-                return func(self, theta, alpha, max_iter, penality, lambda_)
+                if not isinstance(stochastic, bool):
+                    raise TypeError("stochastic must be a boolean")
+                if not isinstance(mini_batch, bool):
+                    raise TypeError("mini_batch must be a boolean")
+                if not isinstance(batch, bool):
+                    raise TypeError("batch must be a boolean")
+                if not isinstance(batch_size, int):
+                    raise TypeError("batch_size must be an int")
+                if batch_size < 1:
+                    raise ValueError("batch_size must be positive")
+                return func(self,
+                            theta,
+                            alpha,
+                            max_iter,
+                            penality,
+                            lambda_,
+                            stochastic,
+                            mini_batch,
+                            batch,
+                            batch_size)
             except Exception as e:
                 print("MyLogisticRegression init error :", e)
                 return None
         return wrapper
 
     @checkargs_init
-    def __init__(self, theta, alpha=0.1, max_iter=10_000,
-                 penality=None, lambda_=0.0):
+    def __init__(self, theta, alpha, max_iter,
+                 penality, lambda_, stochastic,
+                 mini_batch, batch, batch_size):
         """
         Args:
             theta: has to be a numpy.ndarray, a vector of dimension (number of
@@ -69,6 +93,10 @@ class MyLogisticRegression:
                 else 0.0
             self.losses = []
             self.f1_scores = []
+            self.stochastic = stochastic
+            self.mini_batch = mini_batch
+            self.batch = batch
+            self.batch_size = batch_size
         except Exception as e:
             print("MyLogisticRegression init error :", e)
             return None
@@ -407,13 +435,74 @@ class MyLogisticRegression:
                     return None
                 self.theta -= (self.alpha * gradient)
                 if compute_metrics:
-                    # Compute the loss and the f1 score on
-                    # at each iteration, and append them to the lists
-                    # They will be used to plot the evolution of the metrics
                     y_hat = self.predict_(x_train)
                     self.losses.append(self.loss_(y_train, y_hat))
                     y_hat = np.where(y_hat >= 0.8, 1, 0)
                     self.f1_scores.append(self.f1_score_(y_train, y_hat))
+            if compute_metrics:
+                self.plot_loss_evolution()
+            print()
+            return self.theta
+        except Exception:
+            return None
+
+    @checkargs_fit_
+    def fit_stochastic_(self, x_train, y_train, compute_metrics):
+        """
+        Fits the model to the training dataset contained in x and y.
+        This method uses the stochastic gradient descent.
+        The gradient is computed on a random sample of the dataset.
+        """
+        try:
+            x_copy = x_train
+            y_copy = y_train
+            for _ in self.ft_progress(range(self.max_iter)):
+                idx = np.random.randint(0, x_copy.shape[0])
+                x_train = x_copy[idx, :].reshape(1, -1)
+                y_train = y_copy[idx, :].reshape(1, -1)
+                gradient = self.gradient_(x_train, y_train)
+                if gradient is None:
+                    return None
+                self.theta -= (self.alpha * gradient)
+                if compute_metrics:
+                    y_hat = self.predict_(x_copy)
+                    self.losses.append(self.loss_(y_copy, y_hat))
+                    y_hat = np.where(y_hat >= 0.8, 1, 0)
+                    self.f1_scores.append(self.f1_score_(y_copy, y_hat))
+            if compute_metrics:
+                self.plot_loss_evolution()
+            print()
+            return self.theta
+        except Exception:
+            return None
+
+    @checkargs_fit_
+    def fit_batch_(self, x_train, y_train, compute_metrics):
+        """
+        Fits the model to the training dataset contained in x and y.
+        This method uses the stochastic gradient descent.
+        The gradient is computed on a random sample of the dataset.
+        """
+        try:
+            x_copy = x_train
+            y_copy = y_train
+
+            batch_size = self.batch_size
+            for _ in self.ft_progress(range(self.max_iter)):
+
+                idx = np.random.randint(0, x_copy.shape[0], batch_size)
+                x_train = x_copy[idx, :]
+                y_train = y_copy[idx, :]
+
+                gradient = self.gradient_(x_train, y_train)
+                if gradient is None:
+                    return None
+                self.theta -= (self.alpha * gradient)
+                if compute_metrics:
+                    y_hat = self.predict_(x_copy)
+                    self.losses.append(self.loss_(y_copy, y_hat))
+                    y_hat = np.where(y_hat >= 0.8, 1, 0)
+                    self.f1_scores.append(self.f1_score_(y_copy, y_hat))
             if compute_metrics:
                 self.plot_loss_evolution()
             print()
@@ -441,13 +530,10 @@ class MyLogisticRegression:
             if not isinstance(y, np.ndarray) \
                     or not isinstance(y_hat, np.ndarray):
                 return None
-
             if y.shape != y_hat.shape:
                 return None
-
             if y.size == 0:
                 return None
-
             true = np.where(y == y_hat)[0].shape[0]
             return true / y.size
 
@@ -477,16 +563,12 @@ class MyLogisticRegression:
             if not isinstance(y, np.ndarray) \
                     or not isinstance(y_hat, np.ndarray):
                 return None
-
             if y.shape != y_hat.shape:
                 return None
-
             if y.size == 0 or y_hat.size == 0:
                 return None
-
             if not isinstance(pos_label, (int, str)):
                 return None
-
             tp = np.sum(np.logical_and(y == pos_label, y == y_hat))
             fp = np.sum(np.logical_and(y != pos_label, y_hat == pos_label))
             predicted_positive = tp + fp
@@ -520,16 +602,12 @@ class MyLogisticRegression:
             if not isinstance(y, np.ndarray) \
                     or not isinstance(y_hat, np.ndarray):
                 return None
-
             if y.shape != y_hat.shape:
                 return None
-
             if y.size == 0 or y_hat.size == 0:
                 return None
-
             if not isinstance(pos_label, (int, str)):
                 return None
-
             tp = np.sum(np.logical_and(y == pos_label, y == y_hat))
             fn = np.sum(np.logical_and(y == pos_label, y_hat != pos_label))
             return tp / (tp + fn)
@@ -558,16 +636,12 @@ class MyLogisticRegression:
             if not isinstance(y, np.ndarray) \
                     or not isinstance(y_hat, np.ndarray):
                 return None
-
             if y.shape != y_hat.shape:
                 return None
-
             if y.size == 0 or y_hat.size == 0:
                 return None
-
             if not isinstance(pos_label, (int, str)):
                 return None
-
             precision = self.precision_score_(y, y_hat, pos_label)
             recall = self.recall_score_(y, y_hat, pos_label)
             return 2 * (precision * recall) / (precision + recall)
@@ -579,7 +653,6 @@ class MyLogisticRegression:
         try:
 
             fig = plt.figure()
-
             # Plot the losses
             ax1 = fig.add_subplot(111)
             ax1.set_xlabel("Iteration")
