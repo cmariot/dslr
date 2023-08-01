@@ -86,11 +86,9 @@ def normalize_test(x_test, x_min, x_max):
 
 if __name__ == '__main__':
 
-    (test_path, model_path) = parse_arguments()
+    test_path, model_path = parse_arguments()
     model = get_model(model_path)
     data_test = read_dataset(test_path)
-    truth = read_dataset("../datasets/dataset_truth.csv")
-    truth = truth["Hogwarts House"].to_numpy()
 
     houses = (
         "Ravenclaw",
@@ -106,7 +104,7 @@ if __name__ == '__main__':
     # Process called imputation : Replace NaN with new value.
     # We can replace with 0, mean, mode, median ...
     # But the best is tp use knn imputation
-    # -> chose n neighbors, take the mean value of them.
+    # -> chose x nearest neighbors, take the mean feature value of them.
     imputer = KNNImputer(n_neighbors=5)
     x_test = imputer.fit_transform(x_test)
 
@@ -123,6 +121,21 @@ if __name__ == '__main__':
     y_hat = np.argmax(prediction, axis=1)
     y_hat = np.array([houses[i] for i in y_hat])
 
+    with open("houses.csv", "w") as file:
+        pandas.DataFrame.to_csv(
+            pandas.DataFrame(
+                data=y_hat.reshape(-1, 1),
+                columns=["Hogwarts House"]
+            ),
+            file,
+            index=True,
+            index_label="Index",
+            header=True
+        )
+
+    truth = read_dataset("../datasets/dataset_truth.csv")
+    truth = truth["Hogwarts House"].to_numpy()
+
     mlr.confusion_matrix_(
         y_true=truth,
         y_hat=y_hat,
@@ -132,19 +145,3 @@ if __name__ == '__main__':
     )
 
     print(f"\nAccuracy: {mlr.accuracy_score_(y_hat, truth) * 100:.2f} %")
-
-    # Create an Dataframe with 2 colums : Index and Hogwarts House
-    # Save the dataframe in a csv file
-    df = pandas.DataFrame(
-        data=np.array([np.arange(0, y_hat.shape[0]), y_hat]).T,
-        columns=["Index", "Hogwarts House"]
-    )
-    print(df)
-
-    with open("houses.csv", "w") as file:
-        pandas.DataFrame.to_csv(
-            df,
-            file,
-            index=True,
-            header=True
-        )
