@@ -112,28 +112,21 @@ if __name__ == "__main__":
     x_train = training_set[features].to_numpy()
     y_train = training_set[target]
 
-    x_train = np.linspace(0, 10, 10).reshape(5, 2)
-    x_train[1, 0] = np.nan
-    x_train[2, 1] = np.nan
-    x_train[3, 0] = np.nan
-    x_train[4, 1] = np.nan
+    # x_train = np.linspace(0, 10, 10).reshape(5, 2)
+    # x_train[1, 0] = np.nan
+    # x_train[2, 1] = np.nan
+    # x_train[3, 0] = np.nan
+    # x_train[4, 1] = np.nan
 
     # Pair plot to see the distribution of the features
    # sns.pairplot(training_set, hue="Hogwarts House")
    # plt.show()
 
-    test = np.array([[1, 2, 3], [4, 5,6]])
-    print(test)
-    print(np.delete(test,  1, 1))
-    print(test)
-
-    exit(0)
     imputer = KNNImputer(n_neighbors=4)
     x_train_without_nan = imputer.fit_transform(x_train)
-    for x, x2 in zip(x_train_without_nan, x_train):
-        print(x2, x)
+    # for x, x2 in zip(x_train_without_nan, x_train):
+    #     print(x2, x)
     x_train = x_train_without_nan
-    exit(0)
 
 
     x_norm, x_min, x_max = MLR.normalize_train(x_train)

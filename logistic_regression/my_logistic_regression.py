@@ -670,37 +670,39 @@ class MyLogisticRegression:
     def KNN_predict(self, x, i, j, nb_neighbors):
 
         without_nan_col = np.delete(x, j, 1)
+        print(x[i])
+        truth_nan = np.isnan(x[i])
+        nan_col = [ind for ind, x in enumerate(truth_nan) if x == True]
+        without_nan_col = np.delete(x, nan_col, 1)
         neighbors = []
         distance = 0.0
-        # for it in x[i]:
 
-        #     if np.isnan(it):
-        #         continue
-        #     distance += np.square(it)
-
-        # print(np.sqrt(distance))
-
-        # dist_ref = np.sqrt(distance)
         print("tab i", without_nan_col[i])
-        print(without_nan_col)
+        #print(without_nan_col)
         for i_ in range(without_nan_col.shape[0]):
-            if np.is_nan(x[i, j]) is False:
-                distance = 0.0
-                for j_ in range(without_nan_col.shape[1]):
-                    print("i, j", i_, j_)    
-                    distance += np.square(without_nan_col[i_, j_] - without_nan_col[i, j_])
+            distance = 0.0
+            for j_ in range(without_nan_col.shape[1]):
+                print("i, j", i_, j_)
+                print ("maybe", without_nan_col[i, j_])
+                distance += np.square(without_nan_col[i_, j_] - without_nan_col[i, j_])
 
-                print("nei i", i_, np.sqrt(distance), without_nan_col[i_])
-                if (i_ != i and  distance != np.nan):
-                    neighbors.append(np.sqrt(distance))
+            print("nei i", i_, np.sqrt(distance), without_nan_col[i_], np.isnan(distance))
+            if (i_ != i and (np.isnan(distance) == False)):
+                neighbors.append([np.sqrt(distance), i_])
         
         print("Neighbors =", neighbors)
-        index = np.array([i for i in range(x.shape[0])])
-        print("index = ",index)
-        test = np.arange(x.shape[0])
-        print("test = ", test)
-        #print(neighbors[])
-            
+        indmin = np.array(neighbors)[:, 0].argsort()[0:4]
+       #print("Indmin", indmin)
+        #minind = [neighbors[x][1] for x in indmin]
+        #print("Midind", minind)
+
+        moy = 0.
+        #print (x)
+        superind = np.array([x[neighbors[y][1], j] for y in indmin])
+        superind = superind[~np.isnan(superind)]
+        moy = sum(superind) / len(superind)
+        print ("MOYYYYYYYYYYYYYYYYYYYYYYYYYYY ", moy)
+        return moy
 
     def KNN_inputer(self, x: np.ndarray, nb_neighbors=1):
         for i in range(x.shape[0]):
@@ -708,13 +710,20 @@ class MyLogisticRegression:
                if np.isnan(x[i, j]):
                    x[i, j] = self.KNN_predict(x, i, j, nb_neighbors)
 
-        return "truc"
-
-
+        return x
 
 if __name__ == "__main__":
 
-    x_train = np.linspace(0, 15, 15).reshape(5, 3)
+    test = np.array([[1., 2., 3.], [4., 5., 6.], [7., 8., 3.]])
+    test[0, 1] = np.nan
+    test[0, 2] = np.nan 
+    print(test)
+    truth = np.isnan(test[0])
+    result = [ind for ind, x in enumerate(truth) if x == True]
+    print(np.delete(test, result, 1))
+
+    exit(0)
+    x_train = np.linspace(0, 30, 30).reshape(10, 3)
     x_train[1, 0] = np.nan
     x_train[2, 1] = np.nan
     x_train[3, 0] = np.nan

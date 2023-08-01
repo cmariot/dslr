@@ -89,6 +89,7 @@ if __name__ == '__main__':
     test_path, model_path = parse_arguments()
     model = get_model(model_path)
     data_test = read_dataset(test_path)
+    mlr = MLR()
 
     houses = (
         "Ravenclaw",
@@ -98,19 +99,27 @@ if __name__ == '__main__':
     )
     features = model["features"]
 
-    x_test = data_test[features].to_numpy()
 
+
+    x_test = data_test[features].to_numpy()
+    # print(data_test[features])
+
+    # print(x_test.shape)
+    # exit()
     # Missing values need to be replaced.
     # Process called imputation : Replace NaN with new value.
     # We can replace with 0, mean, mode, median ...
     # But the best is tp use knn imputation
     # -> chose x nearest neighbors, take the mean feature value of them.
-    imputer = KNNImputer(n_neighbors=5)
-    x_test = imputer.fit_transform(x_test)
+
+    # imputer = KNNImputer(n_neighbors=5)
+    # x_test = imputer.fit_transform(x_test)
+
+    x_test = mlr.KNN_inputer(x_test)
 
     x_norm = normalize_test(x_test, model["x_min"], model["x_max"])
 
-    mlr = MLR()
+    
 
     prediction = np.empty((x_norm.shape[0], 0))
     for house in houses:
