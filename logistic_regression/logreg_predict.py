@@ -133,15 +133,18 @@ if __name__ == '__main__':
 
     print(f"\nAccuracy: {mlr.accuracy_score_(y_hat, truth) * 100:.2f} %")
 
-    index = np.arange(0, y_hat.shape[0])
-    index = index.reshape(-1, 1)
-    y_hat = np.concatenate((index, y_hat.reshape(-1, 1)), axis=1)
+    # Create an Dataframe with 2 colums : Index and Hogwarts House
+    # Save the dataframe in a csv file
+    df = pandas.DataFrame(
+        data=np.array([np.arange(0, y_hat.shape[0]), y_hat]).T,
+        columns=["Index", "Hogwarts House"]
+    )
+    print(df)
 
     with open("houses.csv", "w") as file:
-        np.savetxt(
+        pandas.DataFrame.to_csv(
+            df,
             file,
-            y_hat,
-            header="Index,Hogwarts House",
-            delimiter=",",
-            fmt="%s"
+            index=True,
+            header=True
         )
