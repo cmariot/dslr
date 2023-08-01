@@ -1,6 +1,7 @@
 import numpy as np
 import argparse
 import pandas
+from sklearn.impute import KNNImputer
 import yaml
 from my_logistic_regression import MyLogisticRegression as MLR
 # from logic_reg import MyLogisticRegression
@@ -73,31 +74,29 @@ if __name__ == "__main__":
     (dataset_path, display_loss_evolution) = parse_arguments()
     dataset = read_dataset(dataset_path)
 
-    features = [
-        "Arithmancy",
-        "Astronomy",
-        "Herbology",
-        "Defense Against the Dark Arts",
-        "Divination",
-        "Muggle Studies",
-        "Ancient Runes",
-        "History of Magic",
-        "Transfiguration",
-        "Potions",
-        "Care of Magical Creatures",
-        "Charms",
-        "Flying",
-    ]
+    # features = [
+    #     "Arithmancy",
+    #     "Astronomy",
+    #     "Herbology",
+    #     "Defense Against the Dark Arts",
+    #     "Divination",
+    #     "Muggle Studies",
+    #     "Ancient Runes",
+    #     "History of Magic",
+    #     "Transfiguration",
+    #     "Potions",
+    #     "Care of Magical Creatures",
+    #     "Charms",
+    #     "Flying",
+    # ]
 
     features = [
         "Astronomy",
         "Herbology",
         "Defense Against the Dark Arts",
-        "Muggle Studies",
         "Ancient Runes",
     ]
 
-    polynomial_degree = 1
     target = ["Hogwarts House"]
     houses = (
         "Ravenclaw",
@@ -106,32 +105,39 @@ if __name__ == "__main__":
         "Hufflepuff"
     )
 
-    training_set = dataset[features + target].dropna()
+    training_set = dataset[features + target]  # .dropna()
+
     x_train = training_set[features].to_numpy()
     y_train = training_set[target]
-    x_train_poly = \
-        MLR.add_polynomial_features(x_train, polynomial_degree)
-    x_train_norm, x_min, x_max = \
-        MLR.normalize_train(x_train_poly)
+
+    imputer = KNNImputer(n_neighbors=4)
+    x_train_without_nan = imputer.fit_transform(x_train)
+    for x, x2 in zip(x_train_without_nan, x_train):
+        print(x2, x)
+    x_train = x_train_without_nan
+
+    x_norm, x_min, x_max = MLR.normalize_train(x_train)
+
     model = {}
     model["x_min"] = x_min.reshape(1, -1)
     model["x_max"] = x_max.reshape(1, -1)
-    model["degree"] = polynomial_degree
+    model["x_norm"] = x_norm
     model["features"] = features
-    theta_shape = (x_train_norm.shape[1] + 1, 1)
+
+    theta_shape = (x_norm.shape[1] + 1, 1)
 
     for i, house in enumerate(houses):
         print(f"Training model {i + 1}/4 for house {house}")
         mlr = MLR(
             theta=np.zeros(theta_shape),
-            max_iter=10_000,
+            max_iter=20_000,
             alpha=0.1,
             penality=None,
             lambda_=0.0,
         )
         filtered_y_train = filter_house(y_train, house)
         mlr.fit_(
-            x_train_norm,
+            x_norm,
             filtered_y_train,
             display_loss_evolution
         )
@@ -141,10 +147,10 @@ if __name__ == "__main__":
         yaml.dump(model, file)
         print("Models saved in 'models.yml' file.\n")
 
-    prediction = np.empty((x_train_norm.shape[0], 0))
+    prediction = np.empty((x_norm.shape[0], 0))
     for house in houses:
         mlr.theta = model[house]
-        y_hat = mlr.predict_(x_train_norm)
+        y_hat = mlr.predict_(x_norm)
         prediction = np.concatenate((prediction, y_hat), axis=1)
 
     # Argmax sur les predictions pour trouver la maison la plus probable

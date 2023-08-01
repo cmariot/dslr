@@ -3,6 +3,7 @@ import argparse
 import pandas
 import yaml
 from my_logistic_regression import MyLogisticRegression as MLR
+from sklearn.impute import KNNImputer
 
 
 def parse_arguments() -> tuple:
@@ -97,24 +98,30 @@ if __name__ == '__main__':
         "Gryffindor",
         "Hufflepuff"
     )
+    features = model["features"]
 
-    x_test = data_test[model["features"]].to_numpy()
-    x_test = MLR.add_polynomial_features(x_test, model["degree"])
-    x_test = normalize_test(x_test, model["x_min"], model["x_max"])
+    x_test = data_test[features].to_numpy()
+
+    # Missing values need to be replaced.
+    # Process called imputation : Replace NaN with new value.
+    # We can replace with 0, mean, mode, median ...
+    # But the best is tp use knn imputation
+    # -> chose n neighbors, take the mean value of them.
+    imputer = KNNImputer(n_neighbors=5)
+    x_test = imputer.fit_transform(x_test)
+
+    x_norm = normalize_test(x_test, model["x_min"], model["x_max"])
 
     mlr = MLR()
-    prediction = np.empty((x_test.shape[0], 0))
+
+    prediction = np.empty((x_norm.shape[0], 0))
     for house in houses:
         mlr.theta = model[house]
-        y_hat = mlr.predict_(x_test)
+        y_hat = mlr.predict_(x_norm)
         prediction = np.concatenate((prediction, y_hat), axis=1)
 
     y_hat = np.argmax(prediction, axis=1)
-    # On remplace les indices par les noms des maisons
     y_hat = np.array([houses[i] for i in y_hat])
-
-    # print(y_hat.shape)
-    # print(truth.shape)
 
     mlr.confusion_matrix_(
         y_true=truth,
@@ -124,4 +131,17 @@ if __name__ == '__main__':
         display=True
     )
 
-    print(f"\nAccurency: {mlr.accuracy_score_(y_hat, truth) * 100} %")
+    print(f"\nAccuracy: {mlr.accuracy_score_(y_hat, truth) * 100:.2f} %")
+
+    index = np.arange(0, y_hat.shape[0])
+    index = index.reshape(-1, 1)
+    y_hat = np.concatenate((index, y_hat.reshape(-1, 1)), axis=1)
+
+    with open("houses.csv", "w") as file:
+        np.savetxt(
+            file,
+            y_hat,
+            header="Index,Hogwarts House",
+            delimiter=",",
+            fmt="%s"
+        )

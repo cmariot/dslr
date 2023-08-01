@@ -161,8 +161,6 @@ class MyLogisticRegression:
     def predict_(self, x):
         try:
             m = x.shape[0]
-            # Nan are replaced by mean x
-            x = np.nan_to_num(x, nan=np.nanmean(x, axis=0))
             x_prime = np.concatenate((np.ones((m, 1)), x), axis=1)
             y_hat = self.sigmoid_(x_prime.dot(self.theta))
             return y_hat
@@ -193,7 +191,7 @@ class MyLogisticRegression:
             This function should not raise any Exception.
         """
         try:
-            theta_prime = np.copy(theta)
+            theta_prime = np.copy(self.theta)
             theta_prime[0, 0] = 0.0
             regularization = np.dot(theta_prime.T, theta_prime)
             return float(regularization[0, 0])
