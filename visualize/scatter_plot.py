@@ -124,8 +124,6 @@ if __name__ == "__main__":
                 val = np.append(val, cov_v)
                 index = index + 1
 
-    # name = name.astype(int)
-
     dataplot = pandas.DataFrame(dict(Features=name, Correlation=val))
     plt.figure(figsize=(20, 10))
     sn.barplot(x='Features', y='Correlation', data=dataplot, errorbar=None)

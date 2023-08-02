@@ -1,12 +1,8 @@
 import numpy as np
 import argparse
 import pandas
-from sklearn.impute import KNNImputer
 import yaml
 from my_logistic_regression import MyLogisticRegression as MLR
-# from logic_reg import MyLogisticRegression
-# import seaborn as sns
-# import matplotlib.pyplot as plt
 
 
 def parse_arguments() -> tuple:
@@ -67,7 +63,7 @@ def parse_arguments() -> tuple:
             args.test,
             args.stochastic,
             args.mini_batch,
-            True
+            True if not args.stochastic and not args.mini_batch else False
         )
 
     except Exception as e:
@@ -145,6 +141,7 @@ if __name__ == "__main__":
      batch) = parse_arguments()
 
     dataset = read_dataset(dataset_path)
+    mlr = MLR()
 
     features = [
         "Astronomy",
@@ -163,9 +160,9 @@ if __name__ == "__main__":
     )
 
     option = (
-        stochastic,
+        batch,
         mini_batch,
-        batch
+        stochastic
     ).index(True)
 
     training_set = dataset[features + target]
@@ -182,13 +179,12 @@ if __name__ == "__main__":
         y_test
     ) = split_dataset(training_set, split_ratio, features, target)
 
-    imputer = KNNImputer(n_neighbors=4)
+    x_train = mlr.KNN_inputer(x_train, nb_neighbors=5)
 
-    x_train = imputer.fit_transform(x_train)
     x_norm, x_min, x_max = MLR.normalize_train(x_train)
 
     if test_model:
-        x_test = imputer.fit_transform(x_test)
+        x_test = mlr.KNN_inputer(x_test, nb_neighbors=5)
         x_test = MLR.normalize_test(x_test, x_min, x_max)
 
     model = {}
@@ -212,9 +208,9 @@ if __name__ == "__main__":
         )
 
         fit = (
-            mlr.fit_stochastic_,
+            mlr.fit_,
             mlr.fit_mini_batch_,
-            mlr.fit_
+            mlr.fit_stochastic_
         )
 
         filtered_y_train = filter_house(y_train, house)
@@ -224,6 +220,10 @@ if __name__ == "__main__":
             filtered_y_train,
             display_loss_evolution
         )
+
+        y_hat = mlr.predict_(x_norm)
+        y_hat = np.array([1 if x > 0.5 else 0 for x in y_hat]).reshape(-1, 1)
+        mlr.one_vs_all_stats(filtered_y_train, y_hat)
 
         model[house] = mlr.theta
 

@@ -523,6 +523,47 @@ class MyLogisticRegression:
         except Exception:
             return None
 
+    def one_vs_all_stats(self, y, y_hat, pos_label=1):
+        try:
+            if not isinstance(y, np.ndarray) \
+                    or not isinstance(y_hat, np.ndarray):
+                return None
+            if y.shape != y_hat.shape:
+                return None
+            if y.size == 0:
+                return None
+            if not isinstance(pos_label, (int, str)):
+                return None
+            st = {'tp': 0, 'tn': 0, 'fp': 0, 'fn': 0}
+
+            for idx in range(y.shape[0]):
+                if (y_hat[idx] == y[idx]):
+                    if y[idx] == pos_label:
+                        st['tp'] += 1
+                    else:
+                        st['tn'] += 1
+                else:
+                    if y[idx] == pos_label:
+                        st['fn'] += 1
+                    else:
+                        st['fp'] += 1
+            nb = st['tp'] + st['tn'] + st['fp'] + st['fn']
+            accuracy = (st['tp'] + st['tn']) / nb
+            prec = st['tp'] / (st['tp'] + st['fp'])
+            reca = st['tp'] / (st['tp'] + st['fn'])
+            f1 = (2 * prec * reca) / (prec + reca)
+            print("Statistics : ", st['tp'] + st['tn'], "/", nb, "=",
+                  accuracy * 100, "%", " accuracy with :")
+            print("\t", st['fn'], " false negativ (missed)")
+            print("\t", st['fp'], "true positiv (errors)")
+            print("\t f1_score :", f1, " with : ")
+            print("\t\t precision score :", reca)
+            print("\t\t recall score :", prec)
+            print()
+
+        except Exception:
+            return None
+
     def accuracy_score_(self, y, y_hat):
         """
         Compute the accuracy score.
@@ -753,30 +794,30 @@ class MyLogisticRegression:
 
     def KNN_predict(self, x, i, j, nb_neighbors):
         without_nan_col = np.delete(x, j, 1)
-        print(x[i])
+        # print(x[i])
         truth_nan = np.isnan(x[i])
         nan_col = [ind for ind, x in enumerate(truth_nan) if x]
         without_nan_col = np.delete(x, nan_col, 1)
         neighbors = []
         distance = 0.0
 
-        print("tab i", without_nan_col[i])
+        # print("tab i", without_nan_col[i])
         # print(without_nan_col)
         for i_ in range(without_nan_col.shape[0]):
             distance = 0.0
             for j_ in range(without_nan_col.shape[1]):
-                print("i, j", i_, j_)
-                print("maybe", without_nan_col[i, j_])
+                # print("i, j", i_, j_)
+                # print ("maybe", without_nan_col[i, j_])
                 distance += np.square(without_nan_col[i_, j_] -
                                       without_nan_col[i, j_])
 
-            print("nei i", i_, np.sqrt(distance),
-                  without_nan_col[i_], np.isnan(distance))
+            # print("nei i", i_, np.sqrt(distance),
+            # without_nan_col[i_], np.isnan(distance))
             if (i_ != i and (not np.isnan(distance))):
                 neighbors.append([np.sqrt(distance), i_])
 
-        print("Neighbors =", neighbors)
-        indmin = np.array(neighbors)[:, 0].argsort()[0:4]
+        # print("Neighbors =", neighbors)
+        indmin = np.array(neighbors)[:, 0].argsort()[0:nb_neighbors]
         # print("Indmin", indmin)
         # minind = [neighbors[x][1] for x in indmin]
         # print("Midind", minind)
@@ -786,7 +827,7 @@ class MyLogisticRegression:
         superind = np.array([x[neighbors[y][1], j] for y in indmin])
         superind = superind[~np.isnan(superind)]
         moy = sum(superind) / len(superind)
-        print("MOYYYYYYYYYYYYYYYYYYYYYYYYYYY ", moy)
+        # print ("MOYYYYYYYYYYYYYYYYYYYYYYYYYYY ", moy)
         return moy
 
     def KNN_inputer(self, x: np.ndarray, nb_neighbors=1):
