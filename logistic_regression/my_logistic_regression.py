@@ -4,7 +4,6 @@ from time import time
 from os import get_terminal_size
 import matplotlib.pyplot as plt
 
-
 class MyLogisticRegression:
     """
     Description: My logistic regression to classify things.
@@ -510,6 +509,9 @@ class MyLogisticRegression:
         except Exception:
             return None
 
+    def one_vs_all_stats(self, y, y_hat, pos_label=1):
+        print("Accurancy score :", self.accuracy_score_(y, y_hat))
+
     def accuracy_score_(self, y, y_hat):
         """
         Compute the accuracy score.
@@ -743,29 +745,29 @@ class MyLogisticRegression:
     def KNN_predict(self, x, i, j, nb_neighbors):
 
         without_nan_col = np.delete(x, j, 1)
-        print(x[i])
+        #print(x[i])
         truth_nan = np.isnan(x[i])
         nan_col = [ind for ind, x in enumerate(truth_nan) if x == True]
         without_nan_col = np.delete(x, nan_col, 1)
         neighbors = []
         distance = 0.0
 
-        print("tab i", without_nan_col[i])
+        #print("tab i", without_nan_col[i])
         #print(without_nan_col)
         for i_ in range(without_nan_col.shape[0]):
             distance = 0.0
             for j_ in range(without_nan_col.shape[1]):
-                print("i, j", i_, j_)
-                print ("maybe", without_nan_col[i, j_])
+                #print("i, j", i_, j_)
+                #print ("maybe", without_nan_col[i, j_])
                 distance += np.square(without_nan_col[i_, j_] - without_nan_col[i, j_])
 
-            print("nei i", i_, np.sqrt(distance), without_nan_col[i_], np.isnan(distance))
+            #print("nei i", i_, np.sqrt(distance), without_nan_col[i_], np.isnan(distance))
             if (i_ != i and (np.isnan(distance) == False)):
                 neighbors.append([np.sqrt(distance), i_])
         
-        print("Neighbors =", neighbors)
-        indmin = np.array(neighbors)[:, 0].argsort()[0:4]
-       #print("Indmin", indmin)
+        #print("Neighbors =", neighbors)
+        indmin = np.array(neighbors)[:, 0].argsort()[0:nb_neighbors]
+        #print("Indmin", indmin)
         #minind = [neighbors[x][1] for x in indmin]
         #print("Midind", minind)
 
@@ -774,7 +776,7 @@ class MyLogisticRegression:
         superind = np.array([x[neighbors[y][1], j] for y in indmin])
         superind = superind[~np.isnan(superind)]
         moy = sum(superind) / len(superind)
-        print ("MOYYYYYYYYYYYYYYYYYYYYYYYYYYY ", moy)
+        #print ("MOYYYYYYYYYYYYYYYYYYYYYYYYYYY ", moy)
         return moy
 
     def KNN_inputer(self, x: np.ndarray, nb_neighbors=1):

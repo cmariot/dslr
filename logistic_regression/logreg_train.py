@@ -106,11 +106,13 @@ def filter_house(y_train, house):
 if __name__ == "__main__":
 
     (dataset_path,
-     display_loss_evolution,
-     stochastic,
-     mini_batch,
-     batch) = parse_arguments()
+    display_loss_evolution,
+    stochastic,
+    mini_batch,
+    batch) = parse_arguments()
+
     dataset = read_dataset(dataset_path)
+    mlr = MLR()
 
     features = [
         "Astronomy",
@@ -127,7 +129,7 @@ if __name__ == "__main__":
         "Hufflepuff"
     )
 
-    training_set = dataset[features + target]  # .dropna()
+    training_set = dataset[features + target]
 
     x_train = training_set[features].to_numpy()
     y_train = training_set[target]
@@ -136,8 +138,7 @@ if __name__ == "__main__":
     # sns.pairplot(training_set, hue="Hogwarts House")
     # plt.show()
 
-    imputer = KNNImputer(n_neighbors=4)
-    x_train = imputer.fit_transform(x_train)
+    x_train = mlr.KNN_inputer(x_train, nb_neighbors=5)
 
     x_norm, x_min, x_max = MLR.normalize_train(x_train)
 
@@ -183,6 +184,15 @@ if __name__ == "__main__":
             filtered_y_train,
             display_loss_evolution
         )
+
+    
+
+        y_hat = mlr.predict_(x_norm)
+        y_hat = np.array([1 if x > 0.5 else 0 for x in y_hat]).reshape(-1, 1)
+        print (y_hat.shape)
+        print("and")
+        print(filtered_y_train.shape)
+        mlr.one_vs_all_stats(filtered_y_train, y_hat)
 
         model[house] = mlr.theta
 
