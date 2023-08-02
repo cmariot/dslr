@@ -40,12 +40,19 @@ def parse_arguments() -> tuple:
             action='store_true',
             help="Save the pair_plot in a png file."
         )
+        parser.add_argument(
+            '-f', '--features',
+            dest="selected_features",
+            action='store_true',
+            help="Pair plot only the interesting features."
+        )
         args = parser.parse_args()
         return (
             args.dataset_path,
             args.target_name,
             args.corner,
-            args.save_png
+            args.save_png,
+            args.selected_features
         )
     except Exception as e:
         print("Error parsing arguments: ", e)
@@ -114,12 +121,21 @@ if __name__ == "__main__":
         dataset_path,
         target_name,
         corner,
-        save_png
+        save_png,
+        selected_features
     ) = parse_arguments()
 
     entire_dataset = read_dataset(dataset_path)
     dataset = drop_index(entire_dataset)
     (unique_targets, target_palette) = check_target(target_name, dataset)
+    if selected_features:
+        selected_features = [
+            "Astronomy",
+            "Herbology",
+            "Defense Against the Dark Arts",
+            "Ancient Runes",
+        ]
+        dataset = dataset[selected_features + [target_name]]
 
     sns.set(font_scale=0.5)
 

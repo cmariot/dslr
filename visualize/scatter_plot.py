@@ -40,7 +40,6 @@ def parse_arguments() -> tuple:
 
 
 def read_dataset(dataset_path: str) -> pandas.DataFrame:
-
     try:
         dataset = pandas.read_csv(dataset_path)
         return dataset
@@ -51,8 +50,8 @@ def read_dataset(dataset_path: str) -> pandas.DataFrame:
         print("Error reading dataset: ", e)
         exit()
 
-def select_columns(dataset: pandas.DataFrame) -> pandas.DataFrame:
 
+def select_columns(dataset: pandas.DataFrame) -> pandas.DataFrame:
     try:
         numerical_dataset = dataset.select_dtypes(include="number")
         without_index = numerical_dataset.drop("Index", axis='columns')
@@ -67,6 +66,7 @@ def select_columns(dataset: pandas.DataFrame) -> pandas.DataFrame:
         print("Error selecting columns: ", e)
         exit()
 
+
 def mean(li):
     if (len(li) == 0):
         return None
@@ -75,6 +75,7 @@ def mean(li):
         ret = ret + x
     return (float(ret / len(li)))
 
+
 def var(li):
     ret = 0
     moy = mean(li)
@@ -82,23 +83,26 @@ def var(li):
         ret = ret + ((x - moy) * (x - moy))
     return ret
 
+
 def cov(arra1, arra2):
     M1 = mean(arra1.dropna().to_numpy())
     M2 = mean(arra2.dropna().to_numpy())
-    deno = math.sqrt(var(arra1.dropna().to_numpy()) * var(arra2.dropna().to_numpy()))
+    deno = math.sqrt(
+        var(arra1.dropna().to_numpy()) *
+        var(arra2.dropna().to_numpy())
+    )
     res = 0
-    cout = 0
     arra1 = arra1.to_numpy()
     arra2 = arra2.to_numpy()
     for i in range(max(len(arra1), len(arra2))):
         if np.isnan(arra1[i]) or np.isnan(arra2[i]):
             continue
         res = res + ((arra1[i] - M1) * (arra2[i] - M2))
-        count = cout + 1
     res = res / deno
     if res > 1 or res < -1:
         return 0
     return res
+
 
 if __name__ == "__main__":
 
@@ -113,7 +117,9 @@ if __name__ == "__main__":
         for y in feature_names:
             if x != y and x > y:
                 cov_v = cov(dataset[x], dataset[y])
-                print(index, " Correlation(", x.strip(), ",", y.strip(), ")",  cov_v)
+                print(index,
+                      " Correlation(", x.strip(), ",", y.strip(), ")",
+                      cov_v)
                 name = np.append(name, f"{x.strip()} vs. {y.strip()}")
                 val = np.append(val, cov_v)
                 index = index + 1
@@ -133,8 +139,14 @@ if __name__ == "__main__":
     plt.show()
 
     plt.figure(figsize=(20, 10))
-    sn.scatterplot(data=entire_dataset, x="Astronomy", y="Defense Against the Dark Arts", hue="Hogwarts House")
-    plt.title("Scatter plot of the Defense Against the Dark Arts score depending on the Astronomy score")
+    sn.scatterplot(
+        data=entire_dataset,
+        x="Astronomy",
+        y="Defense Against the Dark Arts",
+        hue="Hogwarts House"
+    )
+    plt.title("Scatter plot of the Defense Against the Dark Arts score "
+              + "depending on the Astronomy score")
     plt.tight_layout()
     if save_png:
         plt.savefig("scatter_plot.png")

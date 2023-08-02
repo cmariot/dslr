@@ -17,13 +17,12 @@ class MyLogisticRegression:
     def checkargs_init(func):
         def wrapper(self,
                     theta=np.zeros((2, 1)),
-                    alpha=0.1,
+                    learning_rate=0.1,
                     max_iter=1_000,
                     penality=None,
                     lambda_=0.0,
                     stochastic=False,
                     mini_batch=False,
-                    batch=False,
                     batch_size=32):
             try:
                 if not isinstance(theta, np.ndarray):
@@ -32,8 +31,8 @@ class MyLogisticRegression:
                 if m == 0 or n != 1:
                     raise ValueError(
                         "theta must be a np.ndarray of shape (n, 1)")
-                if not isinstance(alpha, (int, float)):
-                    raise TypeError("alpha must be a float")
+                if not isinstance(learning_rate, (int, float)):
+                    raise TypeError("learning_rate must be a float")
                 if not isinstance(max_iter, int):
                     raise TypeError("max_iter must be an int")
                 if not isinstance(penality, (str, type(None))):
@@ -49,21 +48,22 @@ class MyLogisticRegression:
                     raise TypeError("stochastic must be a boolean")
                 if not isinstance(mini_batch, bool):
                     raise TypeError("mini_batch must be a boolean")
-                if not isinstance(batch, bool):
-                    raise TypeError("batch must be a boolean")
                 if not isinstance(batch_size, int):
                     raise TypeError("batch_size must be an int")
                 if batch_size < 1:
                     raise ValueError("batch_size must be positive")
+                if stochastic or mini_batch:
+                    if penality is not None:
+                        raise ValueError(
+                            "penality not supported with this option")
                 return func(self,
                             theta,
-                            alpha,
+                            learning_rate,
                             max_iter,
                             penality,
                             lambda_,
                             stochastic,
                             mini_batch,
-                            batch,
                             batch_size)
             except Exception as e:
                 print("MyLogisticRegression init error :", e)
@@ -71,21 +71,21 @@ class MyLogisticRegression:
         return wrapper
 
     @checkargs_init
-    def __init__(self, theta, alpha, max_iter,
+    def __init__(self, theta, learning_rate, max_iter,
                  penality, lambda_, stochastic,
-                 mini_batch, batch, batch_size):
+                 mini_batch, batch_size):
         """
         Args:
             theta: has to be a numpy.ndarray, a vector of dimension (number of
                 features + 1, 1).
-            alpha: has to be a float, the learning rate
+            learning_rate: has to be a float, the learning rate
             max_iter: has to be an int, the number of iterations done during
                 the gradient descent
             lambda_: has to be a float, the regularization parameter
             penality: has to be a string, either 'l2' or None
         """
         try:
-            self.alpha = alpha
+            self.learning_rate = learning_rate
             self.max_iter = max_iter
             self.theta = theta
             self.penality = penality
@@ -95,7 +95,6 @@ class MyLogisticRegression:
             self.f1_scores = []
             self.stochastic = stochastic
             self.mini_batch = mini_batch
-            self.batch = batch
             self.batch_size = batch_size
         except Exception as e:
             print("MyLogisticRegression init error :", e)
@@ -146,6 +145,15 @@ class MyLogisticRegression:
         except Exception as e:
             print("Error normalizing training set: ", e)
             return None, None, None
+
+    def normalize_test(x_test, x_min, x_max):
+        try:
+            x_max = x_max.reshape(1, -1)
+            x_min = x_min.reshape(1, -1)
+            return (x_test - x_min) / (x_max - x_min)
+        except Exception as e:
+            print("Error normalizing test set: ", e)
+            return None
 
     def checkargs_sigmoid_(func):
         def wrapper(self, x):
@@ -433,7 +441,7 @@ class MyLogisticRegression:
                 gradient = self.gradient_(x_train, y_train)
                 if gradient is None:
                     return None
-                self.theta -= (self.alpha * gradient)
+                self.theta -= (self.learning_rate * gradient)
                 if compute_metrics:
                     y_hat = self.predict_(x_train)
                     self.losses.append(self.loss_(y_train, y_hat))
@@ -454,21 +462,19 @@ class MyLogisticRegression:
         The gradient is computed on a random sample of the dataset.
         """
         try:
-            x_copy = x_train
-            y_copy = y_train
             for _ in self.ft_progress(range(self.max_iter)):
-                idx = np.random.randint(0, x_copy.shape[0])
-                x_train = x_copy[idx, :].reshape(1, -1)
-                y_train = y_copy[idx, :].reshape(1, -1)
-                gradient = self.gradient_(x_train, y_train)
+                idx = np.random.randint(0, x_train.shape[0])
+                x = x_train[idx, :].reshape(1, -1)
+                y = y_train[idx, :].reshape(1, -1)
+                gradient = self.gradient_(x, y)
                 if gradient is None:
                     return None
-                self.theta -= (self.alpha * gradient)
+                self.theta -= (self.learning_rate * gradient)
                 if compute_metrics:
-                    y_hat = self.predict_(x_copy)
-                    self.losses.append(self.loss_(y_copy, y_hat))
+                    y_hat = self.predict_(x_train)
+                    self.losses.append(self.loss_(y_train, y_hat))
                     y_hat = np.where(y_hat >= 0.8, 1, 0)
-                    self.f1_scores.append(self.f1_score_(y_copy, y_hat))
+                    self.f1_scores.append(self.f1_score_(y_train, y_hat))
             if compute_metrics:
                 self.plot_loss_evolution()
             print()
@@ -477,32 +483,39 @@ class MyLogisticRegression:
             return None
 
     @checkargs_fit_
-    def fit_batch_(self, x_train, y_train, compute_metrics):
+    def fit_mini_batch_(self, x_train, y_train, compute_metrics):
         """
         Fits the model to the training dataset contained in x and y.
         This method uses the stochastic gradient descent.
         The gradient is computed on a random sample of the dataset.
         """
         try:
-            x_copy = x_train
-            y_copy = y_train
-
-            batch_size = self.batch_size
+            train_set = np.concatenate((x_train, y_train), axis=1)
             for _ in self.ft_progress(range(self.max_iter)):
-
-                idx = np.random.randint(0, x_copy.shape[0], batch_size)
-                x_train = x_copy[idx, :]
-                y_train = y_copy[idx, :]
-
-                gradient = self.gradient_(x_train, y_train)
+                index_start = np.random.randint(0, x_train.shape[0])
+                index_end = index_start + self.batch_size
+                if index_end > x_train.shape[0]:
+                    batch_first_part = \
+                        train_set[index_start:, :]
+                    batch_second_part = \
+                        train_set[:index_end - x_train.shape[0], :]
+                    batch = np.concatenate(
+                        (batch_first_part, batch_second_part),
+                        axis=0
+                    )
+                else:
+                    batch = train_set[index_start:index_end, :]
+                x = batch[:, :-1]
+                y = batch[:, -1].reshape(-1, 1)
+                gradient = self.gradient_(x, y)
                 if gradient is None:
                     return None
-                self.theta -= (self.alpha * gradient)
+                self.theta -= (self.learning_rate * gradient)
                 if compute_metrics:
-                    y_hat = self.predict_(x_copy)
-                    self.losses.append(self.loss_(y_copy, y_hat))
+                    y_hat = self.predict_(x_train)
+                    self.losses.append(self.loss_(y_train, y_hat))
                     y_hat = np.where(y_hat >= 0.8, 1, 0)
-                    self.f1_scores.append(self.f1_score_(y_copy, y_hat))
+                    self.f1_scores.append(self.f1_score_(y_train, y_hat))
             if compute_metrics:
                 self.plot_loss_evolution()
             print()
@@ -730,69 +743,68 @@ class MyLogisticRegression:
                                         & (y_hat == labels[j]))[0].shape[0]
             if df_option:
                 cm = DataFrame(cm, index=labels, columns=labels)
-
             if display:
                 print(cm)
-
             return cm
 
         except Exception as err:
             print("Error: confusion_matrix_", err)
             return None
-    
-    def KNN_predict(self, x, i, j, nb_neighbors):
 
+    def KNN_predict(self, x, i, j, nb_neighbors):
         without_nan_col = np.delete(x, j, 1)
         print(x[i])
         truth_nan = np.isnan(x[i])
-        nan_col = [ind for ind, x in enumerate(truth_nan) if x == True]
+        nan_col = [ind for ind, x in enumerate(truth_nan) if x]
         without_nan_col = np.delete(x, nan_col, 1)
         neighbors = []
         distance = 0.0
 
         print("tab i", without_nan_col[i])
-        #print(without_nan_col)
+        # print(without_nan_col)
         for i_ in range(without_nan_col.shape[0]):
             distance = 0.0
             for j_ in range(without_nan_col.shape[1]):
                 print("i, j", i_, j_)
-                print ("maybe", without_nan_col[i, j_])
-                distance += np.square(without_nan_col[i_, j_] - without_nan_col[i, j_])
+                print("maybe", without_nan_col[i, j_])
+                distance += np.square(without_nan_col[i_, j_] -
+                                      without_nan_col[i, j_])
 
-            print("nei i", i_, np.sqrt(distance), without_nan_col[i_], np.isnan(distance))
-            if (i_ != i and (np.isnan(distance) == False)):
+            print("nei i", i_, np.sqrt(distance),
+                  without_nan_col[i_], np.isnan(distance))
+            if (i_ != i and (not np.isnan(distance))):
                 neighbors.append([np.sqrt(distance), i_])
-        
+
         print("Neighbors =", neighbors)
         indmin = np.array(neighbors)[:, 0].argsort()[0:4]
-       #print("Indmin", indmin)
-        #minind = [neighbors[x][1] for x in indmin]
-        #print("Midind", minind)
+        # print("Indmin", indmin)
+        # minind = [neighbors[x][1] for x in indmin]
+        # print("Midind", minind)
 
         moy = 0.
-        #print (x)
+        # print (x)
         superind = np.array([x[neighbors[y][1], j] for y in indmin])
         superind = superind[~np.isnan(superind)]
         moy = sum(superind) / len(superind)
-        print ("MOYYYYYYYYYYYYYYYYYYYYYYYYYYY ", moy)
+        print("MOYYYYYYYYYYYYYYYYYYYYYYYYYYY ", moy)
         return moy
 
     def KNN_inputer(self, x: np.ndarray, nb_neighbors=1):
         for i in range(x.shape[0]):
             for j in range(x.shape[1]):
-               if np.isnan(x[i, j]):
-                   x[i, j] = self.KNN_predict(x, i, j, nb_neighbors)
-
+                if np.isnan(x[i, j]):
+                    x[i, j] = self.KNN_predict(x, i, j, nb_neighbors)
         return x
+
 
 if __name__ == "__main__":
 
     test = np.array([[1., 2., 3.], [4., 5., 6.], [7., 8., 3.]])
     test[0, 1] = np.nan
-    test[0, 2] = np.nan 
+    test[0, 2] = np.nan
     print(test)
     truth = np.isnan(test[0])
-    result = [ind for ind, x in enumerate(truth) if x == True]
+    result = [ind for ind, x in enumerate(truth) if x]
     print(np.delete(test, result, 1))
 
     exit(0)
@@ -809,7 +821,6 @@ if __name__ == "__main__":
     x_train_without_nan = mlr.KNN_inputer(x_train)
 
     print(x_train_without_nan)
-
 
     # y = np.array([1, 1, 0, 0, 1, 1, 0]).reshape((-1, 1))
     # y_hat = np.array([.9, .79, .12, .04, .89, .93, .01]).reshape((-1, 1))
