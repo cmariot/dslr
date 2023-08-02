@@ -1,3 +1,4 @@
+from os import get_terminal_size
 import numpy as np
 import argparse
 import pandas
@@ -193,6 +194,54 @@ if __name__ == "__main__":
     model["features"] = features
 
     theta_shape = (x_norm.shape[1] + 1, 1)
+
+    def print_intro():
+
+        options = {
+            "Training mode": 'Batch' if batch
+            else 'Mini-batch' if mini_batch
+            else 'Stochastic',
+            "Training set size": x_train.shape[0],
+            "Test mode": 'Yes' if test_model else 'No',
+            "Test set size": x_test.shape[0],
+            "Features": ", ".join(features),
+            "Target": ", ".join(target),
+            "Loss evolution": 'Yes' if display_loss_evolution else 'No'
+        }
+
+        if not test_model:
+            del options["Test set size"]
+
+        df_options = pandas.DataFrame(
+            data=options.values(),
+            index=options.keys(),
+            columns=[""]
+
+        )
+        print("""
+ _                              _             _
+| | ___   __ _ _ __ ___  __ _  | |_ _ __ __ _(_)_ __
+| |/ _ \\ / _` | '__/ _ \\/ _` | | __| '__/ _` | | '_ \\
+| | (_) | (_| | | |  __/ (_| | | |_| | | (_| | | | | |
+|_|\\___/ \\__, |_|  \\___|\\__, |  \\__|_|  \\__,_|_|_| |_|
+         |___/          |___/
+
+""")
+
+        with pandas.option_context(
+            'display.max_columns', None,
+            'display.width', get_terminal_size().columns,
+            'display.max_rows', None,
+            'display.max_colwidth', None,
+            # Align the columns on the left instead of the right
+            'colheader_justify', 'left'
+
+        
+
+        ):
+            print(df_options, "\n\n")
+
+    print_intro()
 
     for i, house in enumerate(houses):
 
