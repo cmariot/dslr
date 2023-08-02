@@ -510,7 +510,43 @@ class MyLogisticRegression:
             return None
 
     def one_vs_all_stats(self, y, y_hat, pos_label=1):
-        print("Accurancy score :", self.accuracy_score_(y, y_hat))
+        try:
+            if not isinstance(y, np.ndarray) \
+                or not isinstance(y_hat, np.ndarray):
+                return None
+            if y.shape != y_hat.shape:
+                return None
+            if y.size == 0:
+                return None
+            if not isinstance(pos_label, (int, str)):
+                return None
+            st = {'tp' : 0, 'tn' : 0, 'fp' : 0, 'fn' : 0}
+
+            for idx in range(y.shape[0]):
+                if (y_hat[idx] == y[idx]):
+                    if y[idx] == pos_label:
+                        st['tp'] += 1
+                    else:
+                        st['tn'] += 1
+                else:
+                    if y[idx] == pos_label:
+                        st['fn'] += 1
+                    else:
+                        st['fp'] += 1
+            nb = st['tp'] + st['tn'] + st['fp'] + st['fn']
+            accuracy = (st['tp'] + st['tn']) / nb
+            prec = st['tp'] / (st['tp'] + st['fp'])
+            reca = st['tp'] / (st['tp'] + st['fn'])
+            f1 = (2 * prec * reca) / (prec + reca)
+            print("Statistics : ", st['tp'] + st['tn'], "/", nb, "=", accuracy * 100, "%", " accuracy with :")
+            print("\t", st['fn'], " false negativ (missed)")
+            print("\t", st['fp'], "true positiv (errors)")
+            print("\t f1_score :", f1, " with : ")
+            print("\t\t precision score :", reca)
+            print("\t\t recall score :", prec)
+
+        except Exception:
+            return None
 
     def accuracy_score_(self, y, y_hat):
         """

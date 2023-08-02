@@ -189,9 +189,6 @@ if __name__ == "__main__":
 
         y_hat = mlr.predict_(x_norm)
         y_hat = np.array([1 if x > 0.5 else 0 for x in y_hat]).reshape(-1, 1)
-        print (y_hat.shape)
-        print("and")
-        print(filtered_y_train.shape)
         mlr.one_vs_all_stats(filtered_y_train, y_hat)
 
         model[house] = mlr.theta
