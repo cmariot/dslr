@@ -121,11 +121,19 @@ if __name__ == "__main__":
 
     name = np.array([])
     val = np.array([])
+    maxcov = 0
+
     index = 0
+
+    print("Computing coefficient of correlation beetwin each numerical features of the dataset.\n")
     for x in feature_names:
         for y in feature_names:
             if x != y and x > y:
                 cov_v = cov(dataset[x], dataset[y])
+                if abs(cov_v) > abs(maxcov):
+                    labelx_max = x
+                    labely_max = y
+                    maxcov = cov_v
                 print(index,
                       " Correlation(", x.strip(), ",", y.strip(), ")",
                       cov_v)
@@ -133,6 +141,7 @@ if __name__ == "__main__":
                 val = np.append(val, cov_v)
                 index = index + 1
 
+    print(f"\nMaximum coefficient of correlation founded beetwin the features {x} and {y} of {maxcov}")
     dataplot = pandas.DataFrame(dict(Features=name, Correlation=val))
     plt.figure(figsize=(20, 10))
     sn.barplot(x='Features', y='Correlation', data=dataplot, errorbar=None)
@@ -148,8 +157,8 @@ if __name__ == "__main__":
     plt.figure(figsize=(20, 10))
     sn.scatterplot(
         data=entire_dataset,
-        x="Astronomy",
-        y="Defense Against the Dark Arts",
+        x=labelx_max,
+        y=labely_max,
         hue="Hogwarts House"
     )
     plt.title("Scatter plot of the Defense Against the Dark Arts score "

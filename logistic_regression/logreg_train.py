@@ -96,8 +96,17 @@ def parse_arguments() -> tuple:
         parser.add_argument(
             '--multi-stochastic',
             '-ms',
-            help='Use the gradient descent on one randomly' +
-            ' choosen feature for each iteration.',
+            help='Use the stochastic gradient descent on a batch' +
+            ' for each iteration.',
+            action='store_true',
+            default=False
+        )
+
+        parser.add_argument(
+            '--multi-mini-batch',
+            '-mmb',
+            help='Use the gradient descent on a mini-batch' +
+            ' several times for each iterations.',
             action='store_true',
             default=False
         )
@@ -105,7 +114,7 @@ def parse_arguments() -> tuple:
         args = parser.parse_args()
 
         if (args.stochastic, args.mini_batch,
-                args.batch, args.multi_stochastic).count(True) > 1:
+                args.batch, args.multi_stochastic, args.multi_mini_batch).count(True) > 1:
             print("Error: you can only use one optimization method.")
             exit()
 
@@ -127,9 +136,11 @@ def parse_arguments() -> tuple:
             args.stochastic,
             args.mini_batch,
             args.multi_stochastic,
+            args.multi_mini_batch,
             True if (not args.stochastic
                      and not args.mini_batch
-                     and not args.multi_stochastic) else False,
+                     and not args.multi_stochastic
+                     and not args.multi_mini_batch) else False,
             args.learning_rate,
             args.iterations
         )
@@ -197,7 +208,8 @@ def print_intro():
         "Training mode": 'Batch' if batch
         else 'Mini-batch' if mini_batch
         else 'Stochastic' if stochastic
-        else 'Multi-stochastic',
+        else 'Multi-stochastic' if multi_stochastic
+        else 'Multi-mini-batch',
         "Features": ", ".join(features),
         "Target": ", ".join(target),
         "Houses": ", ".join(houses),
@@ -295,6 +307,7 @@ if __name__ == "__main__":
          stochastic,
          mini_batch,
          multi_stochastic,
+         multi_mini_batch,
          batch,
          learning_rate,
          iterations) = parse_arguments()
@@ -327,7 +340,8 @@ if __name__ == "__main__":
             batch,
             mini_batch,
             stochastic,
-            multi_stochastic
+            multi_stochastic,
+            multi_mini_batch
         ).index(True)
 
         # Split the dataset into training and test sets
@@ -380,7 +394,8 @@ if __name__ == "__main__":
                 mlr.fit_,
                 mlr.fit_mini_batch_,
                 mlr.fit_stochastic_,
-                mlr.fit_multi_stochastic_
+                mlr.fit_multi_stochastic_,
+                mlr.fit_multi_mini_batch_
             )
 
             # Filter the target to train one model for each house

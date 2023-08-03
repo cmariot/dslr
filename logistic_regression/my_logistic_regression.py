@@ -520,6 +520,35 @@ class MyLogisticRegression:
             return None
 
     @checkargs_fit_
+    def fit_multi_mini_batch_(self, x_train, y_train, compute_metrics):
+        """
+        Fits the model to the training dataset contained in x and y.
+        This method uses the stochastic gradient descent.
+        The gradient is computed on a random sample of the dataset.
+        """
+
+        try:
+            train_set = np.concatenate((x_train, y_train), axis=1)
+            for _ in self.ft_progress(range(self.max_iter)):
+                for idx in range(0, train_set.shape[0] - 32, 32):
+                    x = x_train[idx:idx + 32,:]
+                    y = y_train[idx:idx + 32, :]
+
+                    gradient = self.gradient_(x, y)
+                    if gradient is None:
+                        return None
+                    self.theta -= (self.learning_rate * gradient)
+                    if compute_metrics:
+                        y_hat = self.predict_(x_train)
+                        self.losses.append(self.loss_(y_train, y_hat))
+                        y_hat = np.where(y_hat >= 0.8, 1, 0)
+                        self.f1_scores.append(self.f1_score_(y_train, y_hat))
+            print()
+            return self.theta
+        except Exception:
+            return None
+
+    @checkargs_fit_
     def fit_multi_stochastic_(self, x_train, y_train, compute_metrics):
         """
         Fits the model to the training dataset contained in x and y.
@@ -871,40 +900,27 @@ class MyLogisticRegression:
 
     def knn_predict(self, x, i, j, nb_neighbors):
         without_nan_col = np.delete(x, j, 1)
-        # print(x[i])
         truth_nan = np.isnan(x[i])
         nan_col = [ind for ind, x in enumerate(truth_nan) if x]
         without_nan_col = np.delete(x, nan_col, 1)
         neighbors = []
         distance = 0.0
 
-        # print("tab i", without_nan_col[i])
-        # print(without_nan_col)
         for i_ in range(without_nan_col.shape[0]):
             distance = 0.0
             for j_ in range(without_nan_col.shape[1]):
-                # print("i, j", i_, j_)
-                # print ("maybe", without_nan_col[i, j_])
                 distance += np.square(without_nan_col[i_, j_] -
                                       without_nan_col[i, j_])
 
-            # print("nei i", i_, np.sqrt(distance),
-            # without_nan_col[i_], np.isnan(distance))
             if (i_ != i and (not np.isnan(distance))):
                 neighbors.append([np.sqrt(distance), i_])
 
-        # print("Neighbors =", neighbors)
         indmin = np.array(neighbors)[:, 0].argsort()[0:nb_neighbors]
-        # print("Indmin", indmin)
-        # minind = [neighbors[x][1] for x in indmin]
-        # print("Midind", minind)
 
         moy = 0.
-        # print (x)
         superind = np.array([x[neighbors[y][1], j] for y in indmin])
         superind = superind[~np.isnan(superind)]
         moy = sum(superind) / len(superind)
-        # print ("MOYYYYYYYYYYYYYYYYYYYYYYYYYYY ", moy)
         return moy
 
     def knn_imputer(self, x: np.ndarray, nb_neighbors=1):
@@ -914,159 +930,3 @@ class MyLogisticRegression:
                     x[i, j] = self.knn_predict(x, i, j, nb_neighbors)
         return x
 
-
-if __name__ == "__main__":
-
-    test = np.array([[1., 2., 3.], [4., 5., 6.], [7., 8., 3.]])
-    test[0, 1] = np.nan
-    test[0, 2] = np.nan
-    print(test)
-    truth = np.isnan(test[0])
-    result = [ind for ind, x in enumerate(truth) if x]
-    print(np.delete(test, result, 1))
-
-    exit(0)
-    x_train = np.linspace(0, 30, 30).reshape(10, 3)
-    x_train[1, 0] = np.nan
-    x_train[2, 1] = np.nan
-    x_train[3, 0] = np.nan
-    x_train[4, 1] = np.nan
-
-    print(x_train)
-
-    mlr = MyLogisticRegression()
-
-    x_train_without_nan = mlr.knn_imputer(x_train)
-
-    print(x_train_without_nan)
-
-    # y = np.array([1, 1, 0, 0, 1, 1, 0]).reshape((-1, 1))
-    # y_hat = np.array([.9, .79, .12, .04, .89, .93, .01]).reshape((-1, 1))
-    # theta = np.array([1, 2.5, 1.5, -0.9]).reshape((-1, 1))
-
-    # # Example :
-    # mylr = MyLogisticRegression(theta=theta, lambda_=.5)
-    # print(mylr.loss_(y, y_hat))
-    # reg_term = (.5 / (2 * y.shape[0])) * mylr.l2(theta)
-    # # Output:
-    # # 0.43377043716475955
-
-    # # Example :
-    # mylr = MyLogisticRegression(theta=theta, lambda_=.05)
-    # print(mylr.loss_(y, y_hat))
-    # reg_term = (.05 / (2 * y.shape[0])) * mylr.l2(theta)
-    # # Output:
-    # # 0.13452043716475953
-
-    # # Example :
-
-    # mylr = MyLogisticRegression(theta=theta, lambda_=.9)
-    # print(mylr.loss_(y, y_hat))
-    # reg_term = (.9 / (2 * y.shape[0])) * mylr.l2(theta)
-    # # Output:
-    # # 0.6997704371647596
-
-    # x = np.array([[-6, -7, -9],
-    #               [13, -2, 14],
-    #               [-7, 14, -1],
-    #               [-8, -4, 6],
-    #               [-5, -9, 6],
-    #               [1, -5, 11],
-    #               [9, -11, 8]])
-    # y = np.array([[2], [14], [-13], [5], [12], [4], [-19]])
-    # theta = np.array([[7.01], [3], [10.5], [-6]])
-
-    # # Example 1.1:
-    # mylr.theta = theta
-    # mylr.lambda_ = 1
-    # print(mylr.gradient_(x, y))
-    # # Output:
-    # # array([[ -60.99 ],
-    # #        [-195.64714286],
-    # #        [ 863.46571429],
-    # #        [-644.52142857]])
-
-    # # Example 2.1:
-    # mylr.lambda_ = 0.5
-    # print(mylr.gradient_(x, y))
-    # # Output:
-    # # array([[ -60.99 ],
-    # #        [-195.86142857],
-    # #        [ 862.71571429],
-    # #        [-644.09285714]])
-
-    # # Example 3.1:
-    # mylr.lambda_ = 0
-    # print(mylr.gradient_(x, y))
-    # # Output:
-    # # array([[ -60.99 ],
-    # #        [-196.07571429],
-    # #        [ 861.96571429],
-    # #        [-643.66428571]])
-
-    # x = np.array([[0, 2, 3, 4],
-    #               [2, 4, 5, 5],
-    #               [1, 3, 2, 7]])
-
-    # y = np.array([[0], [1], [1]])
-
-    # theta = np.array([[-2.4], [-1.5], [0.3], [-1.4], [0.7]])
-
-    # # Example 1.1:
-    # mylr = MyLogisticRegression(theta=theta, lambda_=1)
-    # print(mylr.gradient_(x, y))
-    # # Output:
-    # # array([[-0.55711039],
-    # #     [-1.40334809],
-    # #     [-1.91756886],
-    # #     [-2.56737958],
-    # #     [-3.03924017]])
-
-    # # Example 2.1:
-    # mylr = MyLogisticRegression(theta=theta, lambda_=0.5)
-    # print(mylr.gradient_(x, y))
-    # # Output:
-    # # array([[-0.55711039],
-    # #     [-1.15334809],
-    # #     [-1.96756886],
-    # #     [-2.33404624],
-    # #     [-3.15590684]])
-
-    # # Example 3.1:
-    # mylr = MyLogisticRegression(theta=theta, lambda_=0)
-    # print(mylr.gradient_(x, y))
-    # # Output:
-    # # array([[-0.55711039],
-    # #     [-0.90334809],
-    # #     [-2.01756886],
-    # #     [-2.10071291],
-    # #     [-3.27257351]])
-
-    # theta = np.array([[-2.4], [-1.5], [0.3], [-1.4], [0.7]])
-
-    # # Example 1:
-    # model1 = MyLogisticRegression(theta, lambda_=5.0)
-    # print(model1.penality)
-    # # Output
-    # # ’l2’
-    # print(model1.lambda_)
-    # # Output
-    # # 5.0
-
-    # # Example 2:
-    # model2 = MyLogisticRegression(theta, penality=None)
-    # print(model2.penality)
-    # # Output
-    # # None
-    # print(model2.lambda_)
-    # # Output
-    # # 0.0
-
-    # # Example 3:
-    # model3 = MyLogisticRegression(theta, penality=None, lambda_=2.0)
-    # print(model3.penality)
-    # # Output
-    # # None
-    # print(model3.lambda_)
-    # # Output
-    # # 0.0
