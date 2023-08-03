@@ -525,6 +525,30 @@ class MyLogisticRegression:
         except Exception:
             return None
 
+    def fit_one_by_one_feature(self, x_train, y_train, compute_metrics):
+        """
+        Fits the model to the training dataset contained in x and y.
+        """
+        try:
+            for _ in range(self.max_iter):
+                print(np.random.randint(x_train.shape[1]))
+                x_temp = x_train[:, np.random.randint(x_train.shape[1])].reshape(-1, 1)
+            #     gradient = self.gradient_(x_train, y_train)
+            #     if gradient is None:
+            #         return None
+            #     self.theta -= (self.learning_rate * gradient)
+            #     if compute_metrics:
+            #         y_hat = self.predict_(x_train)
+            #         self.losses.append(self.loss_(y_train, y_hat))
+            #         y_hat = np.where(y_hat >= 0.8, 1, 0)
+            #         self.f1_scores.append(self.f1_score_(y_train, y_hat))
+            # if compute_metrics:
+            #     self.plot_loss_evolution()
+            # print()
+            return self.theta
+        except Exception:
+            return None
+
     def one_vs_all_stats(self, y, y_hat, pos_label=1):
         try:
             if not isinstance(y, np.ndarray) \

@@ -61,9 +61,17 @@ def parse_arguments() -> tuple:
             default=False
         )
 
+        parser.add_argument(
+            '--batch-one-feature',
+            '-f',
+            help='Use the gradient descent on one randomly choosen feature for each iteration.',
+            action='store_true',
+            default=False
+        )
+
         args = parser.parse_args()
 
-        if (args.stochastic, args.mini_batch, args.batch).count(True) > 1:
+        if (args.stochastic, args.mini_batch, args.batch, args.batch_one_feature).count(True) > 1:
             print("Error: you can only use one optimization method.")
             exit()
 
@@ -84,7 +92,8 @@ def parse_arguments() -> tuple:
             test,
             args.stochastic,
             args.mini_batch,
-            True if not args.stochastic and not args.mini_batch else False
+            args.batch_one_feature,
+            True if not args.stochastic and not args.mini_batch  and not args.batch_one_feature else False
         )
 
     except Exception as e:
@@ -160,7 +169,8 @@ def print_intro():
     options = {
         "Training mode": 'Batch' if batch
         else 'Mini-batch' if mini_batch
-        else 'Stochastic',
+        else 'Stochastic' if stochastic
+        else 'Batch-one-feature',
         "Features": ", ".join(features),
         "Target": ", ".join(target),
         "Houses": ", ".join(houses),
@@ -206,6 +216,7 @@ if __name__ == "__main__":
      test,
      stochastic,
      mini_batch,
+     one_feature,
      batch) = parse_arguments()
 
     dataset = read_dataset(dataset_path)
@@ -232,7 +243,8 @@ if __name__ == "__main__":
     option = (
         batch,
         mini_batch,
-        stochastic
+        stochastic,
+        one_feature
     ).index(True)
 
     training_set = dataset[features + target]
@@ -278,7 +290,8 @@ if __name__ == "__main__":
         fit = (
             mlr.fit_,
             mlr.fit_mini_batch_,
-            mlr.fit_stochastic_
+            mlr.fit_stochastic_,
+            mlr.fit_one_by_one_feature
         )
 
         filtered_y_train = filter_house(y_train, house)
