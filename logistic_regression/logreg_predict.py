@@ -121,6 +121,20 @@ def predict(x_norm, model, mlr):
         exit()
 
 
+def print_intro():
+    print("""
+ _                                                 _ _      _
+| | ___   __ _ _ __ ___  __ _   _ __  _ __ ___  __| (_) ___| |_
+| |/ _ \\ / _` | '__/ _ \\/ _` | | '_ \\| '__/ _ \\/ _` | |/ __| __|
+| | (_) | (_| | | |  __/ (_| | | |_) | | |  __/ (_| | | (__| |_
+|_|\\___/ \\__, |_|  \\___|\\__, | | .__/|_|  \\___|\\__,_|_|\\___|\\__|
+         |___/          |___/  |_|
+
+
+Probabilities of each house and assigned house for each student:
+""")
+
+
 def save_prediction(y_hat, path):
     try:
         df = pandas.DataFrame(
@@ -156,9 +170,11 @@ if __name__ == '__main__':
 
         y_hat, proba = predict(x_norm, model, mlr)
 
-        # Create a new column with the prediction probability
-        # proba = proba + y_hat
-        proba = np.concatenate((np.round(proba, decimals=4), y_hat.reshape(-1, 1)), axis=1)
+        proba = np.concatenate(
+            (np.round(proba, decimals=4), y_hat.reshape(-1, 1)),
+            axis=1
+        )
+
         df = pandas.DataFrame(
             data=proba,
             columns=[
@@ -166,19 +182,16 @@ if __name__ == '__main__':
                 "Slytherin",
                 "Gryffindor",
                 "Hufflepuff",
-                "Predicted House"
-            ],
-
+                "  Predicted House"
+            ]
         )
 
-        # No limit on the number of lines displayed
-        with pandas.option_context("display.precision", 4,
-                                   "display.max_rows", None):
+        print_intro()
+        with pandas.option_context("display.max_rows", None):
             print(df, "\n")
 
         save_prediction(y_hat, "houses.csv")
 
     except Exception as e:
-
         print("Error: ", e)
         exit()
