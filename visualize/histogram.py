@@ -40,8 +40,15 @@ def parse_arguments() -> tuple:
 
 
 def read_dataset(dataset_path: str) -> pandas.DataFrame:
+    """
+    Read the dataset from the given path,
+    returned as a pandas DataFrame.
+    """
     try:
         dataset = pandas.read_csv(dataset_path)
+        if dataset.empty:
+            print("The dataset is empty.")
+            return None
         return dataset
     except FileNotFoundError:
         print("Error: dataset not found.")
@@ -89,23 +96,20 @@ def std(li):
 
 
 if __name__ == "__main__":
-
     dataset_path, save_png = parse_arguments()
     entire_dataset = read_dataset(dataset_path)
-
+    if entire_dataset is None:
+        exit()
     dataset, feature_names = select_columns(entire_dataset)
-
     histoinf = pandas.DataFrame(
         index=["std"],
         columns=dataset.columns,
         dtype=float
     )
-
     histogram = pandas.DataFrame(
         index=["Index"],
         columns=["Feature", "Std"]
     )
-
     print("Standard deviation of all numerical features :")
     pandas.set_option('display.max_columns', None)
     for x in dataset.columns:
@@ -113,10 +117,8 @@ if __name__ == "__main__":
         histoinf.loc["std", x] = std_val
         elem = pandas.DataFrame([{"Feature": x, "Std": math.log(std_val)}])
         histogram = pandas.concat([histogram, elem], axis=0, ignore_index=True)
-
     print(histoinf)
     print(histogram)
-
     plt.figure(figsize=(20, 10))
     sn.barplot(data=histogram, x="Feature", y="Std")
     plt.xticks(rotation=15)
@@ -127,10 +129,8 @@ if __name__ == "__main__":
     if save_png:
         plt.savefig("bar_plot_1.png", dpi=400)
     plt.show()
-
     most_homogeneous_feature = \
         histogram.loc[histogram["Std"].idxmin()]["Feature"]
-
     plt.figure(figsize=(20, 10))
     sn.histplot(
         data=entire_dataset,

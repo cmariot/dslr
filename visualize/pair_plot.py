@@ -60,8 +60,15 @@ def parse_arguments() -> tuple:
 
 
 def read_dataset(dataset_path: str) -> pandas.DataFrame:
+    """
+    Read the dataset from the given path,
+    returned as a pandas DataFrame.
+    """
     try:
         dataset = pandas.read_csv(dataset_path)
+        if dataset.empty:
+            print("The dataset is empty.")
+            return None
         return dataset
     except FileNotFoundError:
         print("Error: dataset not found.")
@@ -94,16 +101,7 @@ def check_target(target_name, dataset) -> tuple:
     """
     try:
         target = dataset[target_name]
-        # Check if objects ?
         unique_targets = target.unique()
-        if len(unique_targets) == 4:
-            # Hogwarts houses colors
-            target_palette = {
-                unique_targets[0]: "#BC2F2F",  # Gryffindor
-                unique_targets[1]: "#8FBD61",  # Hufflepuff
-                unique_targets[2]: "#3D56D3",  # Ravenclaw
-                unique_targets[3]: "#E7E058"   # Slytherin
-            }
         target_palette = None
         return (unique_targets, target_palette)
     except KeyError:
@@ -116,7 +114,6 @@ def check_target(target_name, dataset) -> tuple:
 
 
 if __name__ == "__main__":
-
     (
         dataset_path,
         target_name,
@@ -124,8 +121,9 @@ if __name__ == "__main__":
         save_png,
         selected_features
     ) = parse_arguments()
-
     entire_dataset = read_dataset(dataset_path)
+    if entire_dataset is None:
+        exit()
     dataset = drop_index(entire_dataset)
     (unique_targets, target_palette) = check_target(target_name, dataset)
     if selected_features:
@@ -136,9 +134,7 @@ if __name__ == "__main__":
             "Ancient Runes",
         ]
         dataset = dataset[selected_features + [target_name]]
-
     sns.set(font_scale=0.5)
-
     pair_plot = sns.pairplot(
         data=dataset,
         hue=target_name,
@@ -158,16 +154,11 @@ if __name__ == "__main__":
             "alpha": 0.5,
         }
     )
-
-    # Figure title
     pair_plot.fig.suptitle(
         f"Pair plot representing feature correlations of {target_name}." +
         " (Scatter plot matrix with histograms)",
         y=0.9975
     )
-
-    # Save the figure in a file, more readable than the figure
     if save_png:
         savefig("pair_plot.png", dpi=400)
-
     show()

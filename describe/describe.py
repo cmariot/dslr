@@ -45,7 +45,6 @@ def parse_arguments() -> tuple:
             args.bonus,
             args.compare
         )
-
     except Exception as e:
         print("Error parsing arguments: ", e)
         exit()
@@ -58,6 +57,9 @@ def read_dataset(dataset_path: str) -> pandas.DataFrame:
     """
     try:
         dataset = pandas.read_csv(dataset_path)
+        if dataset.empty:
+            print("The dataset is empty.")
+            return None
         return dataset
     except FileNotFoundError:
         print("Error: dataset not found.")
@@ -70,10 +72,17 @@ def read_dataset(dataset_path: str) -> pandas.DataFrame:
 def select_columns(dataset: pandas.DataFrame) -> pandas.DataFrame:
     """
     Describe display numerical features metrics.
+    Select only the numerical columns, drop the Index.
     """
     try:
         numerical_dataset = dataset.select_dtypes(include="number")
+        if numerical_dataset.empty:
+            print("The dataset does not contain numerical features.")
+            return None, None
         without_index = numerical_dataset.drop("Index", axis='columns')
+        if without_index.empty:
+            print("The dataset does not contain numerical features.")
+            return None, None
         columns = without_index.columns
         return (
             without_index,
@@ -99,12 +108,13 @@ def describe(dataset_path: str, bonus: bool = True, compare: bool = False):
     - bonus: display more metrics.
     - compare: compare with pandas.describe().
     """
-
     try:
-
         entire_dataset = read_dataset(dataset_path)
+        if entire_dataset is None:
+            return None
         dataset, feature_names = select_columns(entire_dataset)
-
+        if dataset is None or feature_names is None:
+            return None
         metrics = {
             "count": Metrics.count,
             "mean": Metrics.mean,
@@ -121,7 +131,6 @@ def describe(dataset_path: str, bonus: bool = True, compare: bool = False):
             "aad": Metrics.aad,
             "cv": Metrics.cv,
         }
-
         if not bonus:
             del metrics["mode"]
             del metrics["var"]
@@ -129,36 +138,31 @@ def describe(dataset_path: str, bonus: bool = True, compare: bool = False):
             del metrics["iqr"]
             del metrics["aad"]
             del metrics["cv"]
-
         description = pandas.DataFrame(
             index=metrics.keys(),
             columns=feature_names,
             dtype=float,
         )
-
         for feature in feature_names:
             np_feature = dataset[feature].dropna().to_numpy()
             for metric, function in metrics.items():
                 description.loc[metric, feature] = function(np_feature)
-
         with pandas.option_context(
             'display.max_columns', None,
             'display.width', get_terminal_size().columns
         ):
-
             print(description)
             if compare:
                 if not bonus:
                     expected = dataset.describe()
-                    print(expected, "\n")
+                    print("\nComparaison with pandas.describe() :\n\n",
+                          expected, "\n")
                     print("OK") if description.equals(expected) \
                         else print("KO")
                 else:
-                    print("There are more metrics in this function" +
+                    print("\nThere are more metrics in this function" +
                           " than the pandas.descibe().")
-
         return description
-
     except Exception as error:
         print("Error: ", error)
         return None

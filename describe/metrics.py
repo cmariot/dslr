@@ -68,7 +68,7 @@ class TinyStatistician:
     def var(x):
         try:
             lng = TinyStatistician.count(x)
-            if lng == 0:
+            if lng < 2:
                 return None
             mean = TinyStatistician.mean(x)
             ret = 0
@@ -112,6 +112,8 @@ class TinyStatistician:
             lng = len(x)
             if lng == 0:
                 return None
+            elif lng == 1:
+                return x[0]
             if p > 100 or p < 0:
                 return None
             if p == 0:

@@ -40,8 +40,15 @@ def parse_arguments() -> tuple:
 
 
 def read_dataset(dataset_path: str) -> pandas.DataFrame:
+    """
+    Read the dataset from the given path,
+    returned as a pandas DataFrame.
+    """
     try:
         dataset = pandas.read_csv(dataset_path)
+        if dataset.empty:
+            print("The dataset is empty.")
+            return None
         return dataset
     except FileNotFoundError:
         print("Error: dataset not found.")
@@ -108,6 +115,8 @@ if __name__ == "__main__":
 
     dataset_path, save_png = parse_arguments()
     entire_dataset = read_dataset(dataset_path)
+    if entire_dataset is None:
+        exit()
     dataset, feature_names = select_columns(entire_dataset)
 
     name = np.array([])

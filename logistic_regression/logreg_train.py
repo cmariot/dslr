@@ -38,6 +38,13 @@ def parse_arguments() -> tuple:
             default=False
         )
         parser.add_argument(
+            '--batch',
+            '-b',
+            help='Use the batch gradient descent.',
+            action='store_true',
+            default=False
+        )
+        parser.add_argument(
             '--stochastic',
             '-s',
             help='Use the stochastic gradient descent optimization.',
@@ -54,7 +61,7 @@ def parse_arguments() -> tuple:
 
         args = parser.parse_args()
 
-        if (args.stochastic, args.mini_batch).count(True) > 1:
+        if (args.stochastic, args.mini_batch, args.batch).count(True) > 1:
             print("Error: you can only use one optimization method.")
             exit()
 
@@ -79,6 +86,9 @@ def read_dataset(dataset_path: str) -> pandas.DataFrame:
     """
     try:
         dataset = pandas.read_csv(dataset_path)
+        if dataset.empty:
+            print("The dataset is empty.")
+            return None
         return dataset
     except FileNotFoundError:
         print("Error: dataset not found.")
@@ -142,6 +152,8 @@ if __name__ == "__main__":
      batch) = parse_arguments()
 
     dataset = read_dataset(dataset_path)
+    if dataset is None:
+        exit()
     mlr = MLR()
 
     features = [
@@ -201,12 +213,14 @@ if __name__ == "__main__":
             "Training mode": 'Batch' if batch
             else 'Mini-batch' if mini_batch
             else 'Stochastic',
+            "Features": ", ".join(features),
+            "Target": ", ".join(target),
+            "Houses": ", ".join(houses),
             "Training set size": x_train.shape[0],
             "Test mode": 'Yes' if test_model else 'No',
             "Test set size": x_test.shape[0],
-            "Features": ", ".join(features),
-            "Target": ", ".join(target),
-            "Loss evolution": 'Yes' if display_loss_evolution else 'No'
+            "Loss evolution": 'Yes' if display_loss_evolution else 'No',
+            "Save model": "Yes" if not test_model else "No"
         }
 
         if not test_model:
@@ -219,25 +233,19 @@ if __name__ == "__main__":
 
         )
         print("""
- _                              _             _
-| | ___   __ _ _ __ ___  __ _  | |_ _ __ __ _(_)_ __
-| |/ _ \\ / _` | '__/ _ \\/ _` | | __| '__/ _` | | '_ \\
-| | (_) | (_| | | |  __/ (_| | | |_| | | (_| | | | | |
-|_|\\___/ \\__, |_|  \\___|\\__, |  \\__|_|  \\__,_|_|_| |_|
-         |___/          |___/
+\t\t _                              _             _
+\t\t| | ___   __ _ _ __ ___  __ _  | |_ _ __ __ _(_)_ __
+\t\t| |/ _ \\ / _` | '__/ _ \\/ _` | | __| '__/ _` | | '_ \\
+\t\t| | (_) | (_| | | |  __/ (_| | | |_| | | (_| | | | | |
+\t\t|_|\\___/ \\__, |_|  \\___|\\__, |  \\__|_|  \\__,_|_|_| |_|
+\t\t         |___/          |___/
 
 """)
 
         with pandas.option_context(
             'display.max_columns', None,
             'display.width', get_terminal_size().columns,
-            'display.max_rows', None,
             'display.max_colwidth', None,
-            # Align the columns on the left instead of the right
-            'colheader_justify', 'left'
-
-        
-
         ):
             print(df_options, "\n\n")
 

@@ -65,6 +65,9 @@ def read_dataset(dataset_path: str) -> pandas.DataFrame:
     """
     try:
         dataset = pandas.read_csv(dataset_path)
+        if dataset.empty:
+            print("The dataset is empty.")
+            return None
         return dataset
     except FileNotFoundError:
         print("Error: dataset not found.")
@@ -88,6 +91,8 @@ if __name__ == '__main__':
     test_path, model_path = parse_arguments()
     model = get_model(model_path)
     data_test = read_dataset(test_path)
+    if data_test is None:
+        exit()
     mlr = MLR()
 
     houses = (
