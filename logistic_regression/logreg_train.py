@@ -32,6 +32,24 @@ def parse_arguments() -> tuple:
             default=False
         )
         parser.add_argument(
+            '-a',
+            '--learning-rate',
+            dest='learning_rate',
+            type=float,
+            nargs='?',
+            help='Value of the learning_rate (alpha) used for training.',
+            default=0.1
+        )
+        parser.add_argument(
+            '-i',
+            '--nb-iterations',
+            dest='iterations',
+            type=int,
+            nargs='?',
+            help='Number of iterations used for training.',
+            default=20_000
+        )
+        parser.add_argument(
             '--test_ratio',
             dest='ratio',
             type=float,
@@ -55,15 +73,15 @@ def parse_arguments() -> tuple:
         )
         parser.add_argument(
             '--mini-batch',
-            '-m',
+            '-mb',
             help='Use the mini-batch gradient descent otpimization.',
             action='store_true',
             default=False
         )
 
         parser.add_argument(
-            '--batch-one-feature',
-            '-f',
+            '--multi-stochastic',
+            '-ms',
             help='Use the gradient descent on one randomly choosen feature for each iteration.',
             action='store_true',
             default=False
@@ -71,7 +89,10 @@ def parse_arguments() -> tuple:
 
         args = parser.parse_args()
 
-        if (args.stochastic, args.mini_batch, args.batch, args.batch_one_feature).count(True) > 1:
+        if (args.stochastic,
+            args.mini_batch,
+            args.batch,
+                args.multi_stochastic).count(True) > 1:
             print("Error: you can only use one optimization method.")
             exit()
 
@@ -85,6 +106,14 @@ def parse_arguments() -> tuple:
 
         test = True if ratio != 0.0 else False
 
+        if args.learning_rate <= 0.0 or args.learning_rate > 1.0:
+            print("Error: learning rate must be greater than 0.")
+            exit()
+
+        if args.iterations <= 0:
+            print("Error: number of iterations must be greater than 0.")
+            exit()
+
         return (
             args.dataset_path,
             args.loss_evolution,
@@ -92,8 +121,10 @@ def parse_arguments() -> tuple:
             test,
             args.stochastic,
             args.mini_batch,
-            args.batch_one_feature,
-            True if not args.stochastic and not args.mini_batch  and not args.batch_one_feature else False
+            args.multi_stochastic,
+            True if not args.stochastic and not args.mini_batch and not args.multi_stochastic else False,
+            args.learning_rate,
+            args.iterations
         )
 
     except Exception as e:
@@ -134,7 +165,6 @@ def split_dataset(dataset: pandas.DataFrame,
         mlr = MLR()
         full_x = mlr.knn_imputer(x, nb_neighbors=5)
 
-
         m = dataset.shape[0]
         train_index_begin = 0
         train_index_end = int(m * ratios[0])
@@ -148,7 +178,7 @@ def split_dataset(dataset: pandas.DataFrame,
         return (x_train, y_train,
                 x_test, y_test)
 
-    except Exception as e:
+    except Exception:
         print("Error: Can't split the dataset")
         exit(1)
 
@@ -170,7 +200,7 @@ def print_intro():
         "Training mode": 'Batch' if batch
         else 'Mini-batch' if mini_batch
         else 'Stochastic' if stochastic
-        else 'Batch-one-feature',
+        else 'Multi-stochastic',
         "Features": ", ".join(features),
         "Target": ", ".join(target),
         "Houses": ", ".join(houses),
@@ -216,8 +246,10 @@ if __name__ == "__main__":
      test,
      stochastic,
      mini_batch,
-     one_feature,
-     batch) = parse_arguments()
+     multi_stochastic,
+     batch,
+     learning_rate,
+     iterations) = parse_arguments()
 
     dataset = read_dataset(dataset_path)
     if dataset is None:
@@ -244,7 +276,7 @@ if __name__ == "__main__":
         batch,
         mini_batch,
         stochastic,
-        one_feature
+        multi_stochastic
     ).index(True)
 
     training_set = dataset[features + target]
@@ -280,8 +312,8 @@ if __name__ == "__main__":
 
         mlr = MLR(
             theta=np.zeros(theta_shape),
-            max_iter=20_000,
-            learning_rate=0.1,
+            max_iter=iterations,
+            learning_rate=learning_rate,
             stochastic=stochastic,
             mini_batch=mini_batch,
             batch_size=32
@@ -291,12 +323,11 @@ if __name__ == "__main__":
             mlr.fit_,
             mlr.fit_mini_batch_,
             mlr.fit_stochastic_,
-            mlr.fit_one_by_one_feature
+            mlr.fit_multi_stochastic_
         )
 
         filtered_y_train = filter_house(y_train, house)
 
-        print(x_norm.shape)
         fit[option](
             x_norm,
             filtered_y_train,
@@ -320,28 +351,37 @@ if __name__ == "__main__":
             yaml.dump(model, file)
             print("Models saved in 'models.yml' file.")
 
-    if test:
+    if not test:
+        x_test = x_norm
+        y_test = y_train
+        test_mode = "train"
+    else:
+        test_mode = "test"
 
-        print("Testing models on test set...\n" +
-              "The model will not be saved.\n")
+    print(f"Testing models on {test_mode} set...\n" +
+          "The model will not be saved.\n")
 
-        prediction = np.empty((x_test.shape[0], 0))
-        for house in houses:
-            mlr.theta = model[house]
-            y_hat = mlr.predict_(x_test)
-            prediction = np.concatenate((prediction, y_hat), axis=1)
+    for house in houses:
+        print(f"Model for {house} :")
+        print(model[house], "\n")
 
-        y_hat = np.argmax(prediction, axis=1)
-        y_hat = np.array([houses[i] for i in y_hat])
-        y_test = y_test.to_numpy().reshape(-1)
+    prediction = np.empty((x_test.shape[0], 0))
+    for house in houses:
+        mlr.theta = model[house]
+        y_hat = mlr.predict_(x_test)
+        prediction = np.concatenate((prediction, y_hat), axis=1)
 
-        mlr.confusion_matrix_(
-            y_test,
-            y_hat,
-            labels=houses,
-            df_option=True,
-            display=True
-        )
+    y_hat = np.argmax(prediction, axis=1)
+    y_hat = np.array([houses[i] for i in y_hat])
+    y_test = y_test.to_numpy().reshape(-1)
 
-        accuracy = mlr.accuracy_score_(y_hat, y_test) * 100
-        print(f"\nAccuracy on test set: {accuracy:.2f} %")
+    mlr.confusion_matrix_(
+        y_test,
+        y_hat,
+        labels=houses,
+        df_option=True,
+        display=True
+    )
+
+    accuracy = mlr.accuracy_score_(y_hat, y_test) * 100
+    print(f"\nAccuracy on test set: {accuracy:.2f} %")

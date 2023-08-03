@@ -525,29 +525,81 @@ class MyLogisticRegression:
         except Exception:
             return None
 
-    def fit_one_by_one_feature(self, x_train, y_train, compute_metrics):
+    @checkargs_fit_
+    def fit_multi_stochastic_(self, x_train, y_train, compute_metrics):
         """
         Fits the model to the training dataset contained in x and y.
+        This method uses the stochastic gradient descent.
+        The gradient is computed on a random sample of the dataset.
         """
         try:
-            for _ in range(self.max_iter):
-                print(np.random.randint(x_train.shape[1]))
-                x_temp = x_train[:, np.random.randint(x_train.shape[1])].reshape(-1, 1)
-            #     gradient = self.gradient_(x_train, y_train)
-            #     if gradient is None:
-            #         return None
-            #     self.theta -= (self.learning_rate * gradient)
-            #     if compute_metrics:
-            #         y_hat = self.predict_(x_train)
-            #         self.losses.append(self.loss_(y_train, y_hat))
-            #         y_hat = np.where(y_hat >= 0.8, 1, 0)
-            #         self.f1_scores.append(self.f1_score_(y_train, y_hat))
-            # if compute_metrics:
-            #     self.plot_loss_evolution()
-            # print()
+            for i in self.ft_progress(range(self.max_iter)):
+                list = np.arange(0, x_train.shape[0])
+                for j in range(self.batch_size):
+                    idx = np.random.randint(0, list.size)
+                    x = x_train[idx, :].reshape(1, -1)
+                    y = y_train[idx, :].reshape(1, -1)
+                    list = np.delete(list, idx)
+                    if list.size == 0:
+                        list = np.arange(0, x_train.shape[0])
+                    gradient = self.gradient_(x, y)
+                    if gradient is None:
+                        return None
+                    self.theta -= (self.learning_rate * gradient)
+                    if compute_metrics:
+                        y_hat = self.predict_(x_train)
+                        self.losses.append(self.loss_(y_train, y_hat))
+                        y_hat = np.where(y_hat >= 0.8, 1, 0)
+                        self.f1_scores.append(self.f1_score_(y_train, y_hat))
+            if compute_metrics:
+                self.plot_loss_evolution()
+            print()
             return self.theta
-        except Exception:
+        except Exception as e:
+            print("Exception:", e)
             return None
+        
+    # def fit_one_by_one_feature(self, x_train, y_train, compute_metrics):
+    #     """
+    #     Fits the model to the training dataset contained in x and y.
+    #     """
+    #     try:
+    #         for _ in self.ft_progress(range(self.max_iter)):
+
+    #             m, n = x_train.shape
+    #             col = np.random.randint(n)
+    #             x_temp = x_train[:, col].reshape(-1, 1)
+
+    #             x_prime = np.concatenate((np.ones((m, 1)), x_temp), axis=1)
+
+    #             theta_tmp = np.array([self.theta[0], self.theta[col + 1]])
+
+    #             y_hat = self.sigmoid_(x_prime.dot(theta_tmp))
+
+    #             gradient = x_prime.T.dot(y_hat - y_train) / m
+    #             if gradient is None:
+    #                 print("gradient.shape, gradient", gradient.shape, gradient)
+    #             elif gradient[0] is None or gradient[1] is None:
+    #                 print("gradient.shape, gradient", gradient.shape, gradient)
+
+    #             # self.theta[0] -= (self.learning_rate * gradient[0])
+    #             self.theta[col + 1] -= (self.learning_rate * gradient[1])
+
+    #             print("\n\nself.theta", self.theta, "\n\n")
+
+    #             if compute_metrics:
+    #                 y_hat = self.predict_(x_train)
+    #                 self.losses.append(self.loss_(y_train, y_hat))
+    #                 y_hat = np.where(y_hat >= 0.5, 1, 0)
+    #                 self.f1_scores.append(self.f1_score_(y_train, y_hat))
+
+    #         if compute_metrics:
+    #             self.plot_loss_evolution()
+    #         print()
+    #         return self.theta
+    #     except Exception as e:
+    #         print("EXCEPTION !!!", e)
+    #         return None
 
     def one_vs_all_stats(self, y, y_hat, pos_label=1):
         try:
@@ -573,11 +625,22 @@ class MyLogisticRegression:
                         st['fn'] += 1
                     else:
                         st['fp'] += 1
+
             nb = st['tp'] + st['tn'] + st['fp'] + st['fn']
             accuracy = (st['tp'] + st['tn']) / nb
-            prec = st['tp'] / (st['tp'] + st['fp'])
-            reca = st['tp'] / (st['tp'] + st['fn'])
-            f1 = (2 * prec * reca) / (prec + reca)
+            if (st['tp'] + st['fp']) != 0:
+                prec = st['tp'] / (st['tp'] + st['fp'])
+            else:
+                prec = None
+            if (st['tp'] + st['fn']) != 0: 
+                reca = st['tp'] / (st['tp'] + st['fn'])
+            else:
+                reca = None
+            if prec is not None and reca is not None and prec + reca != 0:
+                f1 = (2 * prec * reca) / (prec + reca)
+            else:
+                f1 = None
+
             stats = {
                 'accuracy': accuracy,
                 'true positive': st['tp'],
