@@ -18,7 +18,8 @@ def parse_arguments() -> tuple:
             "It trains the models and save the results in 'models.yml' file."
         )
         parser.add_argument(
-            'dataset_path',
+            '--dataset_path',
+            dest='dataset_path',
             type=str,
             help='Path to the training dataset.',
             default="../datasets/dataset_train.csv"
@@ -31,11 +32,12 @@ def parse_arguments() -> tuple:
             default=False
         )
         parser.add_argument(
-            '--test',
-            '-t',
-            help='Split training set into training and test sets.',
-            action='store_true',
-            default=False
+            '--test_ratio',
+            dest='ratio',
+            type=float,
+            nargs='?',
+            help='Ratio of the dataset to use for training.',
+            default=0.0
         )
         parser.add_argument(
             '--batch',
@@ -65,10 +67,21 @@ def parse_arguments() -> tuple:
             print("Error: you can only use one optimization method.")
             exit()
 
+        ratio = args.ratio
+
+        if ratio is None:
+            ratio = 0.5
+        elif ratio < 0.0 or ratio > 1.0:
+            print("Error: ratio must be between 0 and 1.")
+            exit()
+
+        test = True if ratio != 0.0 else False
+
         return (
             args.dataset_path,
             args.loss_evolution,
-            args.test,
+            ratio,
+            test,
             args.stochastic,
             args.mini_batch,
             True if not args.stochastic and not args.mini_batch else False
@@ -107,27 +120,27 @@ def split_dataset(dataset: pandas.DataFrame,
         # Shuffle the dataset
         dataset = dataset.sample(frac=1)
 
-        # Training set = set of data that is used to train and
-        # make the model learn
+        y = dataset[target]
+        x = dataset[features].to_numpy()
+        mlr = MLR()
+        full_x = mlr.knn_imputer(x, nb_neighbors=5)
+
+
         m = dataset.shape[0]
         train_index_begin = 0
         train_index_end = int(m * ratios[0])
-        x_train = dataset[features][train_index_begin:train_index_end]
-        y_train = dataset[target][train_index_begin:train_index_end]
+        x_train = full_x[train_index_begin:train_index_end]
+        y_train = y[train_index_begin:train_index_end]
 
-        # Test set = set of data that is used to test the model
         test_index_begin = train_index_end
-        test_index_end = test_index_begin + int(m * ratios[1])
-        x_test = dataset[features][test_index_begin:test_index_end]
-        y_test = dataset[target][test_index_begin:test_index_end]
+        x_test = full_x[test_index_begin:]
+        y_test = y[test_index_begin:]
 
-        # Return the splitted dataset as Numpy arrays
-        return (x_train.to_numpy(), y_train,
-                x_test.to_numpy(), y_test)
+        return (x_train, y_train,
+                x_test, y_test)
 
     except Exception as e:
         print("Error: Can't split the dataset")
-        print(e)
         exit(1)
 
 
@@ -142,11 +155,55 @@ def filter_house(y_train, house):
         exit()
 
 
+def print_intro():
+
+    options = {
+        "Training mode": 'Batch' if batch
+        else 'Mini-batch' if mini_batch
+        else 'Stochastic',
+        "Features": ", ".join(features),
+        "Target": ", ".join(target),
+        "Houses": ", ".join(houses),
+        "Training set size": x_train.shape[0],
+        "Test mode": 'Yes' if test else 'No',
+        "Test set size": x_test.shape[0],
+        "Loss evolution": 'Yes' if display_loss_evolution else 'No',
+        "Save model": "Yes" if not test else "No"
+    }
+
+    if not test:
+        del options["Test set size"]
+
+    df_options = pandas.DataFrame(
+        data=options.values(),
+        index=options.keys(),
+        columns=[""]
+
+    )
+    print("""
+\t\t _                              _             _
+\t\t| | ___   __ _ _ __ ___  __ _  | |_ _ __ __ _(_)_ __
+\t\t| |/ _ \\ / _` | '__/ _ \\/ _` | | __| '__/ _` | | '_ \\
+\t\t| | (_) | (_| | | |  __/ (_| | | |_| | | (_| | | | | |
+\t\t|_|\\___/ \\__, |_|  \\___|\\__, |  \\__|_|  \\__,_|_|_| |_|
+\t\t         |___/          |___/
+
+""")
+
+    with pandas.option_context(
+        'display.max_columns', None,
+        'display.width', get_terminal_size().columns,
+        'display.max_colwidth', None,
+    ):
+        print(df_options, "\n\n")
+
+
 if __name__ == "__main__":
 
     (dataset_path,
      display_loss_evolution,
-     test_model,
+     split_ratio,
+     test,
      stochastic,
      mini_batch,
      batch) = parse_arguments()
@@ -180,10 +237,10 @@ if __name__ == "__main__":
 
     training_set = dataset[features + target]
 
-    if test_model:
-        split_ratio = (0.8, 0.2)
+    if test:
+        split_ratio = (1. - split_ratio, split_ratio)
     else:
-        split_ratio = (1, 0)
+        split_ratio = (1., 0.)
 
     (
         x_train,
@@ -192,12 +249,8 @@ if __name__ == "__main__":
         y_test
     ) = split_dataset(training_set, split_ratio, features, target)
 
-    x_train = mlr.KNN_inputer(x_train, nb_neighbors=5)
-
     x_norm, x_min, x_max = MLR.normalize_train(x_train)
-
-    if test_model:
-        x_test = mlr.KNN_inputer(x_test, nb_neighbors=5)
+    if test:
         x_test = MLR.normalize_test(x_test, x_min, x_max)
 
     model = {}
@@ -207,53 +260,11 @@ if __name__ == "__main__":
 
     theta_shape = (x_norm.shape[1] + 1, 1)
 
-    def print_intro():
-
-        options = {
-            "Training mode": 'Batch' if batch
-            else 'Mini-batch' if mini_batch
-            else 'Stochastic',
-            "Features": ", ".join(features),
-            "Target": ", ".join(target),
-            "Houses": ", ".join(houses),
-            "Training set size": x_train.shape[0],
-            "Test mode": 'Yes' if test_model else 'No',
-            "Test set size": x_test.shape[0],
-            "Loss evolution": 'Yes' if display_loss_evolution else 'No',
-            "Save model": "Yes" if not test_model else "No"
-        }
-
-        if not test_model:
-            del options["Test set size"]
-
-        df_options = pandas.DataFrame(
-            data=options.values(),
-            index=options.keys(),
-            columns=[""]
-
-        )
-        print("""
-\t\t _                              _             _
-\t\t| | ___   __ _ _ __ ___  __ _  | |_ _ __ __ _(_)_ __
-\t\t| |/ _ \\ / _` | '__/ _ \\/ _` | | __| '__/ _` | | '_ \\
-\t\t| | (_) | (_| | | |  __/ (_| | | |_| | | (_| | | | | |
-\t\t|_|\\___/ \\__, |_|  \\___|\\__, |  \\__|_|  \\__,_|_|_| |_|
-\t\t         |___/          |___/
-
-""")
-
-        with pandas.option_context(
-            'display.max_columns', None,
-            'display.width', get_terminal_size().columns,
-            'display.max_colwidth', None,
-        ):
-            print(df_options, "\n\n")
-
     print_intro()
 
     for i, house in enumerate(houses):
 
-        print(f"Training model {i + 1}/4 for house {house}")
+        print(f"Training model {i + 1}/4 for house {house} :\n")
 
         mlr = MLR(
             theta=np.zeros(theta_shape),
@@ -272,24 +283,31 @@ if __name__ == "__main__":
 
         filtered_y_train = filter_house(y_train, house)
 
+        print(x_norm.shape)
         fit[option](
             x_norm,
             filtered_y_train,
             display_loss_evolution
         )
 
-        y_hat = mlr.predict_(x_norm)
+        if test:
+            y_hat = mlr.predict_(x_test)
+            y_stat = filter_house(y_test, house)
+        else:
+            y_hat = mlr.predict_(x_norm)
+            y_stat = filtered_y_train
         y_hat = np.array([1 if x > 0.5 else 0 for x in y_hat]).reshape(-1, 1)
-        mlr.one_vs_all_stats(filtered_y_train, y_hat)
+
+        mlr.one_vs_all_stats(y_stat, y_hat)
 
         model[house] = mlr.theta
 
-    if not test_model:
+    if not test:
         with open("models.yml", "w") as file:
             yaml.dump(model, file)
             print("Models saved in 'models.yml' file.")
 
-    if test_model:
+    if test:
 
         print("Testing models on test set...\n" +
               "The model will not be saved.\n")

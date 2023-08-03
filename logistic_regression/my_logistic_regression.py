@@ -175,13 +175,15 @@ class MyLogisticRegression:
     def sigmoid_(self, x):
         try:
             return 1 / (1 + np.exp(-x))
-        except Exception:
+        except Exception as e:
+            print("MyLogisticRegression sigmoid_ error :", e)
             return None
 
     def checkargs_predict_(func):
         def wrapper(self, x):
             try:
                 if not isinstance(x, np.ndarray):
+                    print("x must be a numpy.ndarray\n\n")
                     return None
                 m, n = x.shape
                 if m == 0 or n == 0:
@@ -353,7 +355,7 @@ class MyLogisticRegression:
             return None
 
     def ft_progress(self, iterable,
-                    length=get_terminal_size().columns - 2,
+                    length=get_terminal_size().columns - 4,
                     fill='█',
                     empty='░',
                     print_end='\r'):
@@ -397,8 +399,8 @@ class MyLogisticRegression:
                 percent_str = f'[{(i / total) * 100:6.2f} %] '
                 progress_str = str(fill * filled_length
                                    + empty * (length - filled_length))
-                counter_str = f' [{i:>{len(str(total))}}/{total}] '
-                bar = ("\033[F\033[K " + progress_str + "\n"
+                counter_str = f'  [{i:>{len(str(total))}}/{total}] '
+                bar = ("\033[F\033[K  " + progress_str + "\n"
                        + counter_str
                        + percent_str
                        + et_str
@@ -552,16 +554,32 @@ class MyLogisticRegression:
             prec = st['tp'] / (st['tp'] + st['fp'])
             reca = st['tp'] / (st['tp'] + st['fn'])
             f1 = (2 * prec * reca) / (prec + reca)
-            print("Statistics : ", st['tp'] + st['tn'], "/", nb, "=",
-                  accuracy * 100, "%", " accuracy with :")
-            print("\t", st['fn'], " false negativ (missed)")
-            print("\t", st['fp'], "true positiv (errors)")
-            print("\t f1_score :", f1, " with : ")
-            print("\t\t precision score :", reca)
-            print("\t\t recall score :", prec)
-            print()
+            stats = {
+                'accuracy': accuracy,
+                'true positive': st['tp'],
+                'false positive': st['fp'],
+                'true negative': st['tn'],
+                'false negative': st['fn'],
+                'total': nb,
+                'f1_score': f1,
+                'precision': prec,
+                'recall': reca,
+            }
+            df = DataFrame(
+                stats,
+                index=[""])
+            print(df, "\n\n")
 
-        except Exception:
+            # print("Statistics : ", st['tp'] + st['tn'], "/", nb, "=",
+            #       accuracy * 100, "%", " accuracy with :")
+            # print("\t", st['fn'], " false negativ (missed)")
+            # print("\t", st['fp'], "false positiv (errors)")
+            # print("\t f1_score :", f1, " with : ")
+            # print("\t\t precision score :", reca)
+            # print("\t\t recall score :", prec)
+
+        except Exception as e:
+            print(e)
             return None
 
     def accuracy_score_(self, y, y_hat):
@@ -792,7 +810,7 @@ class MyLogisticRegression:
             print("Error: confusion_matrix_", err)
             return None
 
-    def KNN_predict(self, x, i, j, nb_neighbors):
+    def knn_predict(self, x, i, j, nb_neighbors):
         without_nan_col = np.delete(x, j, 1)
         # print(x[i])
         truth_nan = np.isnan(x[i])
@@ -830,11 +848,11 @@ class MyLogisticRegression:
         # print ("MOYYYYYYYYYYYYYYYYYYYYYYYYYYY ", moy)
         return moy
 
-    def KNN_inputer(self, x: np.ndarray, nb_neighbors=1):
+    def knn_imputer(self, x: np.ndarray, nb_neighbors=1):
         for i in range(x.shape[0]):
             for j in range(x.shape[1]):
                 if np.isnan(x[i, j]):
-                    x[i, j] = self.KNN_predict(x, i, j, nb_neighbors)
+                    x[i, j] = self.knn_predict(x, i, j, nb_neighbors)
         return x
 
 
@@ -859,7 +877,7 @@ if __name__ == "__main__":
 
     mlr = MyLogisticRegression()
 
-    x_train_without_nan = mlr.KNN_inputer(x_train)
+    x_train_without_nan = mlr.knn_imputer(x_train)
 
     print(x_train_without_nan)
 

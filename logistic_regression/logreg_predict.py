@@ -19,16 +19,18 @@ def parse_arguments() -> tuple:
             "'houses.csv' file."
         )
         parser.add_argument(
-            'dataset_path',
+            '-d', '--dataset_path',
+            dest='dataset_path',
             type=str,
             help='Path to the training dataset.',
-            default="../datasets/dataset_train.csv"
+            default="../datasets/dataset_test.csv",
         )
         parser.add_argument(
-            'model_path',
+            '-m', '--model_path',
+            dest='model_path',
             type=str,
             help='Please specify the model.yml',
-            default="./model.yml"
+            default="./models.yml",
         )
         args = parser.parse_args()
         return (
@@ -49,9 +51,23 @@ def get_model(model_path: str) -> dict:
     try:
         with open(model_path, "r") as file:
             model = yaml.load(file, Loader=yaml.loader.UnsafeLoader)
+        if model is None:
+            raise Exception("The model is empty.")
+        required_keys = [
+            "features",
+            "x_min",
+            "x_max",
+            "Ravenclaw",
+            "Slytherin",
+            "Gryffindor",
+            "Hufflepuff"
+        ]
+        for key in required_keys:
+            if key not in model:
+                raise Exception("The model is missing " + key + ".")
         return model
     except FileNotFoundError:
-        print("Error: model not found.")
+        print("Error: model not found, please use logreg_train.py before.")
         exit()
     except Exception as e:
         print("Error reading model: ", e)
@@ -66,8 +82,7 @@ def read_dataset(dataset_path: str) -> pandas.DataFrame:
     try:
         dataset = pandas.read_csv(dataset_path)
         if dataset.empty:
-            print("The dataset is empty.")
-            return None
+            raise Exception("The dataset is empty.")
         return dataset
     except FileNotFoundError:
         print("Error: dataset not found.")
@@ -86,68 +101,84 @@ def normalize_test(x_test, x_min, x_max):
         exit()
 
 
+def predict(x_norm, model, mlr):
+    try:
+        houses = (
+            "Ravenclaw",
+            "Slytherin",
+            "Gryffindor",
+            "Hufflepuff"
+        )
+        prediction = np.empty((x_norm.shape[0], 0))
+        for house in houses:
+            mlr.theta = model[house]
+            y_hat = mlr.predict_(x_norm)
+            prediction = np.concatenate((prediction, y_hat), axis=1)
+        y_hat = np.argmax(prediction, axis=1)
+        return np.array([houses[i] for i in y_hat]), prediction
+    except Exception as e:
+        print("Error predicting: ", e)
+        exit()
+
+
+def save_prediction(y_hat, path):
+    try:
+        df = pandas.DataFrame(
+            data=y_hat.reshape(-1, 1),
+            columns=["Hogwarts House"]
+        )
+        with open(path, "w") as file:
+            df.to_csv(
+                path_or_buf=file,
+                index=True,
+                index_label="Index",
+                header=True
+            )
+            print("Prediction saved in 'houses.csv' file.")
+    except Exception as e:
+        print("Error saving prediction: ", e)
+        exit()
+
+
 if __name__ == '__main__':
 
-    test_path, model_path = parse_arguments()
-    model = get_model(model_path)
-    data_test = read_dataset(test_path)
-    if data_test is None:
-        exit()
-    mlr = MLR()
+    try:
 
-    houses = (
-        "Ravenclaw",
-        "Slytherin",
-        "Gryffindor",
-        "Hufflepuff"
-    )
-    features = model["features"]
+        test_path, model_path = parse_arguments()
+        model = get_model(model_path)
+        test_dataset = read_dataset(test_path)
 
-    x_test = data_test[features].to_numpy()
+        mlr = MLR()
+        features = model["features"]
+        x_test = test_dataset[features].to_numpy()
+        x_test = mlr.knn_imputer(x_test, nb_neighbors=5)
+        x_norm = normalize_test(x_test, model["x_min"], model["x_max"])
 
-    # Missing values need to be replaced.
-    # Process called imputation : Replace NaN with new value.
-    # We can replace with 0, mean, mode, median ...
-    # But the best is tp use knn imputation
-    # -> chose x nearest neighbors, take the mean feature value of them.
+        y_hat, proba = predict(x_norm, model, mlr)
 
-    # imputer = KNNImputer(n_neighbors=5)
-    # x_test = imputer.fit_transform(x_test)
+        # Create a new column with the prediction probability
+        # proba = proba + y_hat
+        proba = np.concatenate((np.round(proba, decimals=4), y_hat.reshape(-1, 1)), axis=1)
+        df = pandas.DataFrame(
+            data=proba,
+            columns=[
+                "Ravenclaw",
+                "Slytherin",
+                "Gryffindor",
+                "Hufflepuff",
+                "Predicted House"
+            ],
 
-    x_test = mlr.KNN_inputer(x_test, nb_neighbors=5)
-
-    x_norm = normalize_test(x_test, model["x_min"], model["x_max"])
-
-    prediction = np.empty((x_norm.shape[0], 0))
-    for house in houses:
-        mlr.theta = model[house]
-        y_hat = mlr.predict_(x_norm)
-        prediction = np.concatenate((prediction, y_hat), axis=1)
-
-    y_hat = np.argmax(prediction, axis=1)
-    y_hat = np.array([houses[i] for i in y_hat])
-
-    with open("houses.csv", "w") as file:
-        pandas.DataFrame.to_csv(
-            pandas.DataFrame(
-                data=y_hat.reshape(-1, 1),
-                columns=["Hogwarts House"]
-            ),
-            file,
-            index=True,
-            index_label="Index",
-            header=True
         )
 
-    # truth = read_dataset("../datasets/dataset_truth.csv")
-    # truth = truth["Hogwarts House"].to_numpy()
+        # No limit on the number of lines displayed
+        with pandas.option_context("display.precision", 4,
+                                   "display.max_rows", None):
+            print(df, "\n")
 
-    # mlr.confusion_matrix_(
-    #     y_true=truth,
-    #     y_hat=y_hat,
-    #     labels=houses,
-    #     df_option=True,
-    #     display=True
-    # )
+        save_prediction(y_hat, "houses.csv")
 
-    # print(f"\nAccuracy: {mlr.accuracy_score_(y_hat, truth) * 100:.2f} %")
+    except Exception as e:
+
+        print("Error: ", e)
+        exit()
