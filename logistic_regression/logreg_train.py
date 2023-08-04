@@ -18,7 +18,6 @@ def parse_arguments() -> tuple:
             "It trains the models and save the results in 'models.yml' file."
         )
         parser.add_argument(
-            '--dataset_path',
             dest='dataset_path',
             type=str,
             help='Path to the training dataset.',
@@ -114,7 +113,8 @@ def parse_arguments() -> tuple:
         args = parser.parse_args()
 
         if (args.stochastic, args.mini_batch,
-                args.batch, args.multi_stochastic, args.multi_mini_batch).count(True) > 1:
+            args.batch, args.multi_stochastic,
+                args.multi_mini_batch).count(True) > 1:
             print("Error: you can only use one optimization method.")
             exit()
 

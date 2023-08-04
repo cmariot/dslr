@@ -19,14 +19,12 @@ def parse_arguments() -> tuple:
             "'houses.csv' file."
         )
         parser.add_argument(
-            '-d', '--dataset_path',
             dest='dataset_path',
             type=str,
             help='Path to the training dataset.',
             default="../datasets/dataset_test.csv",
         )
         parser.add_argument(
-            '-m', '--model_path',
             dest='model_path',
             type=str,
             help='Please specify the model.yml',
