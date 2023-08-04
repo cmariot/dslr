@@ -183,6 +183,9 @@ def split_dataset(dataset: pandas.DataFrame,
         mlr = MLR()
         full_x = mlr.knn_imputer(x, nb_neighbors=5)
 
+        if y.isnull().values.any():
+            raise Exception("The target contains missing values.")
+
         # Train/test split
         m = dataset.shape[0]
         train_index_begin = 0
@@ -197,8 +200,8 @@ def split_dataset(dataset: pandas.DataFrame,
         return (x_train, y_train,
                 x_test, y_test)
 
-    except Exception:
-        print("Error: Can't split the dataset")
+    except Exception as e:
+        print("Error :", e)
         exit(1)
 
 

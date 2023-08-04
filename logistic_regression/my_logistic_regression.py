@@ -531,7 +531,7 @@ class MyLogisticRegression:
             train_set = np.concatenate((x_train, y_train), axis=1)
             for _ in self.ft_progress(range(self.max_iter)):
                 for idx in range(0, train_set.shape[0] - 32, 32):
-                    x = x_train[idx:idx + 32,:]
+                    x = x_train[idx:idx + 32, :]
                     y = y_train[idx:idx + 32, :]
 
                     gradient = self.gradient_(x, y)
@@ -929,4 +929,3 @@ class MyLogisticRegression:
                 if np.isnan(x[i, j]):
                     x[i, j] = self.knn_predict(x, i, j, nb_neighbors)
         return x
-
