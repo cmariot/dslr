@@ -2,6 +2,7 @@
 *.png
 
 */models.yml
+*/houses.csv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
