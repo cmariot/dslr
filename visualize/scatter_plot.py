@@ -125,7 +125,7 @@ if __name__ == "__main__":
 
     index = 0
 
-    print("Computing coefficient of correlation beetwin each numerical features of the dataset.\n")
+    print("Computing coefficient of correlation between each numerical features of the dataset.\n")
     for x in feature_names:
         for y in feature_names:
             if x != y and x > y:
@@ -141,7 +141,7 @@ if __name__ == "__main__":
                 val = np.append(val, cov_v)
                 index = index + 1
 
-    print(f"\nMaximum coefficient of correlation founded beetwin the features {x} and {y} of {maxcov}")
+    print(f"\nMaximum coefficient of correlation founded between the features {x} and {y} of {maxcov}")
     dataplot = pandas.DataFrame(dict(Features=name, Correlation=val))
     plt.figure(figsize=(20, 10))
     sn.barplot(x='Features', y='Correlation', data=dataplot, errorbar=None)

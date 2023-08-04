@@ -321,7 +321,6 @@ if __name__ == "__main__":
         # Set the features and target
         # Features are the courses, target is the house
         features = [
-            "Astronomy",
             "Herbology",
             "Defense Against the Dark Arts",
             "Ancient Runes",

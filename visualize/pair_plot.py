@@ -128,7 +128,6 @@ if __name__ == "__main__":
     (unique_targets, target_palette) = check_target(target_name, dataset)
     if selected_features:
         selected_features = [
-            "Astronomy",
             "Herbology",
             "Defense Against the Dark Arts",
             "Ancient Runes",
